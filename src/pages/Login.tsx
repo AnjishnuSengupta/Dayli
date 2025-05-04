@@ -1,152 +1,229 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Mail, Lock, ArrowRight, User } from 'lucide-react';
-import MainLayout from '../components/layout/MainLayout';
-import { useToast } from '@/hooks/use-toast';
+import { Heart, User, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LoadingButton } from '@/components/ui/loading';
 
 const Login = () => {
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signUp, logIn } = useAuth();
-  
+  const navigate = useNavigate();
+
+  const validateInputs = () => {
+    setError(null);
+    
+    if (isRegister && !name.trim()) {
+      setError("Please enter your name");
+      return false;
+    }
+    
+    if (!email.trim()) {
+      setError("Please enter your email");
+      return false;
+    }
+    
+    if (!email.includes('@') || !email.includes('.')) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    
+    if (!password) {
+      setError("Please enter a password");
+      return false;
+    }
+    
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return false;
+    }
+    
+    if (isRegister && password !== confirmPassword) {
+      setError("Passwords don't match");
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!validateInputs()) return;
+    
+    setLoading(true);
+    setError(null);
     
     try {
-      if (isSignUp) {
-        await signUp(email, password, displayName);
-        toast({
-          title: "Welcome to Our Journal!",
-          description: "Your account has been created successfully.",
-        });
+      if (isRegister) {
+        await signUp(email, password, name);
+        toast.success("Account created! Welcome to Our Journal!");
       } else {
         await logIn(email, password);
-        toast({
-          title: "Welcome back!",
-          description: "We're so glad to see you here",
-        });
+        toast.success("Welcome back!");
       }
       
-      // Set authentication state in localStorage
+      // Store auth state in localStorage as a backup
       localStorage.setItem('isAuthenticated', 'true');
       
       // Navigate to dashboard
       navigate('/dashboard');
-    } catch (error) {
-      toast({
-        title: "Authentication Error",
-        description: error instanceof Error ? error.message : "Failed to authenticate",
-        variant: "destructive"
-      });
+    } catch (err) {
+      console.error("Authentication error:", err);
+      
+      if (err instanceof Error) {
+        // Extract Firebase error message
+        const errorMessage = err.message;
+        if (errorMessage.includes('auth/user-not-found') || errorMessage.includes('auth/wrong-password')) {
+          setError("Invalid email or password");
+        } else if (errorMessage.includes('auth/email-already-in-use')) {
+          setError("This email is already registered");
+        } else {
+          setError(errorMessage);
+        }
+      } else {
+        setError("An unexpected error occurred");
+      }
+      
+      localStorage.removeItem('isAuthenticated');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-  
+
   return (
-    <MainLayout showNav={false}>
-      <div className="flex justify-center items-center min-h-[80vh]">
-        <div className="w-full max-w-md">
-          <div className="mb-8 flex justify-center">
-            <Heart 
-              size={40} 
-              className="text-journal-blush" 
-              fill="#FFDEE2"
-            />
-          </div>
-          
-          <h1 className="text-3xl font-serif text-center mb-8">
-            {isSignUp ? 'Create Your Account' : 'Welcome Back'}
+    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-100 via-white to-blue-50 p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-serif flex items-center justify-center gap-2">
+            <Heart className="text-journal-blush" /> Our Journal
           </h1>
+          <p className="text-gray-600 mt-2">
+            {isRegister ? "Create an account to start journaling" : "Sign in to continue journaling"}
+          </p>
+        </div>
+        
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           
-          <form onSubmit={handleSubmit} className="journal-card space-y-6">
-            {isSignUp && (
-              <div className="space-y-2">
-                <label htmlFor="displayName" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <User size={16} />
-                  Display Name
-                </label>
-                <input
-                  id="displayName"
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="input-field w-full px-4 py-3"
-                  placeholder="How would you like to be called?"
-                  required={isSignUp}
-                />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {isRegister && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium mb-1">Name</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-10"
+                    placeholder="Your name"
+                    disabled={loading}
+                  />
+                </div>
               </div>
             )}
             
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Mail size={16} />
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-field w-full px-4 py-3"
-                placeholder="hello@example.com"
-                required
-              />
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  placeholder="your.email@example.com"
+                  disabled={loading}
+                />
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Lock size={16} />
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-field w-full px-4 py-3"
-                placeholder={isSignUp ? "Create a strong password" : "Enter your password"}
-                required
-              />
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+              </div>
             </div>
             
-            <button 
+            {isRegister && (
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-medium mb-1">Confirm Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10"
+                    placeholder="••••••••"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <LoadingButton
               type="submit"
-              className="btn-primary w-full flex justify-center items-center gap-2"
-              disabled={isLoading}
+              className="w-full py-3"
+              loading={loading}
             >
-              {isLoading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'} <ArrowRight size={16} />
-            </button>
-            
-            <div className="pt-4 text-center">
-              <button 
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                {isSignUp 
-                  ? 'Already have an account? Sign In' 
-                  : "Don't have an account? Sign Up"}
-              </button>
-            </div>
+              {isRegister ? "Create Account" : "Sign In"}
+            </LoadingButton>
           </form>
           
-          <div className="text-center mt-8">
-            <Link to="/" className="text-sm text-gray-500 hover:text-gray-900">
-              Return to welcome page
+          <div className="mt-6 text-center">
+            <button 
+              className="text-journal-lavender hover:underline focus:outline-none"
+              onClick={() => setIsRegister(!isRegister)}
+              disabled={loading}
+            >
+              {isRegister ? "Already have an account? Sign In" : "Don't have an account? Register"}
+            </button>
+          </div>
+          
+          <div className="mt-8 text-center">
+            <Link to="/" className="text-sm text-gray-500 hover:underline">
+              Back to Welcome Page
             </Link>
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 };
 

@@ -1,117 +1,115 @@
 
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Heart, 
-  BookOpen, 
-  Image, 
-  Award,
-  Music,
-  Settings,
-  Menu,
-  X,
-  User
-} from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { Home, Book, Image, Trophy, User, LogOut, Menu, X } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/sonner';
+import { useMobile } from '@/hooks/use-mobile';
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const location = useLocation();
-  
+  const isMobile = useMobile();
+  const { currentUser, logOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logOut();
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to log out. Please try again.");
+    }
+  };
+
   const navItems = [
-    { 
-      name: 'Home', 
-      path: '/dashboard', 
-      icon: <Heart className="mr-2" size={18} /> 
-    },
-    { 
-      name: 'Journal', 
-      path: '/journal', 
-      icon: <BookOpen className="mr-2" size={18} /> 
-    },
-    { 
-      name: 'Memories', 
-      path: '/memories', 
-      icon: <Image className="mr-2" size={18} /> 
-    },
-    { 
-      name: 'Milestones', 
-      path: '/milestones', 
-      icon: <Award className="mr-2" size={18} /> 
-    },
-    { 
-      name: 'Music', 
-      path: '/music', 
-      icon: <Music className="mr-2" size={18} /> 
-    },
-    { 
-      name: 'Settings', 
-      path: '/settings', 
-      icon: <Settings className="mr-2" size={18} /> 
-    },
+    { path: '/dashboard', icon: <Home size={20} />, label: 'Home' },
+    { path: '/journal', icon: <Book size={20} />, label: 'Journal' },
+    { path: '/memories', icon: <Image size={20} />, label: 'Memories' },
+    { path: '/milestones', icon: <Trophy size={20} />, label: 'Milestones' },
+    { path: '/settings', icon: <User size={20} />, label: 'Settings' },
   ];
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-10">
-      <nav className="glass mx-4 my-4 rounded-full px-4 py-2 flex justify-between items-center">
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <Heart fill="#FFDEE2" className="text-journal-blush" />
-          <h1 className="font-serif text-lg font-medium">Our Journal</h1>
-        </Link>
+    <nav className="py-4 px-6 bg-white/70 backdrop-blur-lg shadow-sm sticky top-0 z-40">
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between">
+          <NavLink to="/dashboard" className="text-xl font-serif text-gray-800 flex items-center gap-2">
+            <span className="text-journal-blush">❤</span> Our Journal
+          </NavLink>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.path}
-              className={`px-3 py-2 rounded-full flex items-center text-sm transition-all ${
-                isActive(item.path) 
-                  ? 'bg-white/80 shadow-sm' 
-                  : 'hover:bg-white/50'
-              }`}
-            >
-              {item.icon}
-              {item.name}
-            </Link>
-          ))}
-        </div>
-
-        {/* Mobile menu button */}
-        <button 
-          className="md:hidden rounded-full p-2 hover:bg-white/50"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </nav>
-
-      {/* Mobile Navigation */}
-      {mobileMenuOpen && (
-        <div className="md:hidden glass mx-4 mt-1 rounded-2xl p-4 shadow-lg animate-fade-in">
-          <div className="flex flex-col gap-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`px-4 py-3 rounded-xl flex items-center transition-all ${
-                  isActive(item.path) 
-                    ? 'bg-white/80 shadow-sm' 
-                    : 'hover:bg-white/50'
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
+          {isMobile ? (
+            <>
+              <button 
+                onClick={toggleMobileMenu}
+                className="p-2 rounded-full hover:bg-gray-100"
+                aria-label="Toggle menu"
               >
-                {item.icon}
-                {item.name}
-              </Link>
-            ))}
-          </div>
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+
+              {mobileMenuOpen && (
+                <div className="absolute top-full left-0 w-full bg-white shadow-md py-4 px-6 flex flex-col space-y-4 z-50">
+                  {navItems.map(item => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) => 
+                        `flex items-center gap-3 py-2 px-3 rounded-lg transition-colors ${
+                          isActive ? 'bg-pink-50 text-journal-blush' : 'text-gray-700 hover:bg-gray-100'
+                        }`
+                      }
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </NavLink>
+                  ))}
+                  
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 py-2 px-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <LogOut size={20} />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-1">
+              {navItems.map(item => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => 
+                    `flex items-center gap-2 py-2 px-3 rounded-lg transition-colors ${
+                      isActive ? 'bg-pink-50 text-journal-blush' : 'text-gray-700 hover:bg-gray-100'
+                    }`
+                  }
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+              
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 py-2 px-3 ml-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <LogOut size={20} />
+                <span>Log Out</span>
+              </button>
+            </div>
+          )}
         </div>
-      )}
-    </header>
+      </div>
+    </nav>
   );
 };
 

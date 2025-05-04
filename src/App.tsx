@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Journal from "./pages/Journal";
 import Memories from "./pages/Memories";
 import Milestones from "./pages/Milestones";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/journal" element={<PrivateRoute><Journal /></PrivateRoute>} />
             <Route path="/memories" element={<PrivateRoute><Memories /></PrivateRoute>} />
             <Route path="/milestones" element={<PrivateRoute><Milestones /></PrivateRoute>} />
+            <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

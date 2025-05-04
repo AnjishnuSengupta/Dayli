@@ -4,11 +4,11 @@ import { NavLink } from 'react-router-dom';
 import { Home, Book, Image, Trophy, User, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const { currentUser, logOut } = useAuth();
 
   const handleLogout = async () => {

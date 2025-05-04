@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/AuthContext";
 
 // Import pages
 import Welcome from "./pages/Welcome";
@@ -19,9 +20,16 @@ const queryClient = new QueryClient();
 
 // Private route component
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  // We'll check if user is authenticated here
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  try {
+    const { currentUser } = useAuth();
+    const isAuthenticated = currentUser || localStorage.getItem('isAuthenticated') === 'true';
+    return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  } catch (error) {
+    console.error("Error in PrivateRoute:", error);
+    // Fallback to localStorage check if auth context fails
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  }
 };
 
 const App = () => (

@@ -1,11 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
 import FloatingHearts from '../components/ui/FloatingHearts';
-import { Calendar, Trophy, Plus, Heart, Award, Edit, Save } from 'lucide-react';
+import { Calendar, Trophy, Plus, Heart, Award, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { addMilestone, getMilestones, generateAutomaticMilestones } from '@/services/milestonesService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Milestones = () => {
   const [showHearts, setShowHearts] = useState(false);
@@ -13,56 +16,66 @@ const Milestones = () => {
   const [newMilestoneOpen, setNewMilestoneOpen] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
   const [newMilestoneDate, setNewMilestoneDate] = useState('');
-  const [customMilestones, setCustomMilestones] = useState([
-    {
-      id: 'custom-1',
-      title: 'First "I love you"',
-      date: 'September 25, 2025',
-      achieved: true,
-      description: 'Under the stars at Riverside Park'
-    },
-  ]);
   
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
   
-  // Sample automatic milestones
+  // Sample relationship start date - in a real app, this would come from user settings
   const relationshipStartDate = new Date(2025, 7, 29); // August 29, 2025
   const today = new Date();
   const daysSince = Math.floor((today.getTime() - relationshipStartDate.getTime()) / (1000 * 60 * 60 * 24));
   
-  const autoMilestones = [
-    {
-      id: 'day-1',
-      title: 'Day 1',
-      date: 'August 29, 2025',
-      achieved: true,
-      description: 'The day it all began'
-    },
-    {
-      id: 'day-7',
-      title: 'Week 1',
-      date: 'September 5, 2025',
-      achieved: daysSince >= 7,
-      description: 'One week together'
-    },
-    {
-      id: 'day-30',
-      title: 'Month 1',
-      date: 'September 29, 2025',
-      achieved: daysSince >= 30,
-      description: 'One month of happiness'
-    },
-    {
-      id: 'day-100',
-      title: '100 Days',
-      date: 'December 7, 2025',
-      achieved: daysSince >= 100,
-      description: '100 days of beautiful memories'
-    }
-  ];
+  // Fetch milestones
+  const { data: milestones, isLoading } = useQuery({
+    queryKey: ['milestones'],
+    queryFn: getMilestones,
+    enabled: !!currentUser
+  });
   
+  // Add milestone mutation
+  const addMilestoneMutation = useMutation({
+    mutationFn: addMilestone,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+      
+      setNewMilestoneTitle('');
+      setNewMilestoneDate('');
+      setNewMilestoneOpen(false);
+      
+      // Show celebration animations
+      setShowHearts(true);
+      setShowConfetti(true);
+      
+      toast({
+        title: "New milestone created",
+        description: "A special moment has been added to your journey",
+      });
+      
+      setTimeout(() => {
+        setShowHearts(false);
+        setShowConfetti(false);
+      }, 3000);
+    }
+  });
+  
+  // Generate automatic milestones
+  const generateMilestonesMutation = useMutation({
+    mutationFn: () => generateAutomaticMilestones(relationshipStartDate, currentUser?.uid || ''),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+    }
+  });
+
+  // Generate initial automatic milestones when the component mounts
+  useEffect(() => {
+    if (currentUser) {
+      generateMilestonesMutation.mutate();
+    }
+  }, [currentUser]);
+
   const addCustomMilestone = () => {
-    if (!newMilestoneTitle.trim() || !newMilestoneDate.trim()) {
+    if (!newMilestoneTitle.trim() || !newMilestoneDate.trim() || !currentUser) {
       toast({
         title: "Missing information",
         description: "Please fill in both title and date fields",
@@ -71,31 +84,15 @@ const Milestones = () => {
     }
     
     const newMilestone = {
-      id: `custom-${Date.now()}`,
       title: newMilestoneTitle,
       date: newMilestoneDate,
       achieved: true,
-      description: ''
+      description: '',
+      createdBy: currentUser.uid,
+      isAutomatic: false
     };
     
-    setCustomMilestones([...customMilestones, newMilestone]);
-    setNewMilestoneTitle('');
-    setNewMilestoneDate('');
-    setNewMilestoneOpen(false);
-    
-    // Show celebration animations
-    setShowHearts(true);
-    setShowConfetti(true);
-    
-    toast({
-      title: "New milestone created",
-      description: "A special moment has been added to your journey",
-    });
-    
-    setTimeout(() => {
-      setShowHearts(false);
-      setShowConfetti(false);
-    }, 3000);
+    addMilestoneMutation.mutate(newMilestone);
   };
 
   const celebrateMilestone = (id: string) => {
@@ -112,6 +109,10 @@ const Milestones = () => {
       setShowConfetti(false);
     }, 3000);
   };
+
+  // Group milestones into automatic and custom
+  const autoMilestones = milestones?.filter(m => m.isAutomatic) || [];
+  const customMilestones = milestones?.filter(m => !m.isAutomatic) || [];
 
   return (
     <MainLayout>
@@ -168,38 +169,44 @@ const Milestones = () => {
           Relationship Milestones
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {autoMilestones.map(milestone => (
-            <JournalCard 
-              key={milestone.id} 
-              className={`${milestone.achieved ? 'glass' : 'bg-white/40 border border-dashed border-gray-200'} transition-all relative overflow-hidden`}
-              animated
-            >
-              {milestone.achieved && (
-                <div className="absolute -right-4 -top-4 bg-journal-peach p-6 rounded-full border-4 border-white/50 flex items-center justify-center rotate-12">
-                  <Award className="text-white" />
-                </div>
-              )}
-              <h3 className="font-serif text-lg mb-1">{milestone.title}</h3>
-              <p className="text-sm text-gray-600 flex items-center gap-1 mb-3">
-                <Calendar size={14} /> 
-                {milestone.date}
-              </p>
-              <p className="text-sm mb-3">{milestone.description}</p>
-              
-              {milestone.achieved ? (
-                <button
-                  onClick={() => celebrateMilestone(milestone.id)}
-                  className="flex items-center gap-1 text-sm text-journal-blush hover:text-journal-lavender"
-                >
-                  <Heart size={16} fill="#FFDEE2" /> Celebrate this moment
-                </button>
-              ) : (
-                <p className="text-sm text-gray-400 italic">Coming soon...</p>
-              )}
-            </JournalCard>
-          ))}
-        </div>
+        {isLoading ? (
+          <JournalCard>
+            <p className="text-center py-4">Loading milestones...</p>
+          </JournalCard>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {autoMilestones.map(milestone => (
+              <JournalCard 
+                key={milestone.id} 
+                className={`${milestone.achieved ? 'glass' : 'bg-white/40 border border-dashed border-gray-200'} transition-all relative overflow-hidden`}
+                animated
+              >
+                {milestone.achieved && (
+                  <div className="absolute -right-4 -top-4 bg-journal-peach p-6 rounded-full border-4 border-white/50 flex items-center justify-center rotate-12">
+                    <Award className="text-white" />
+                  </div>
+                )}
+                <h3 className="font-serif text-lg mb-1">{milestone.title}</h3>
+                <p className="text-sm text-gray-600 flex items-center gap-1 mb-3">
+                  <Calendar size={14} /> 
+                  {milestone.date}
+                </p>
+                <p className="text-sm mb-3">{milestone.description}</p>
+                
+                {milestone.achieved ? (
+                  <button
+                    onClick={() => celebrateMilestone(milestone.id || '')}
+                    className="flex items-center gap-1 text-sm text-journal-blush hover:text-journal-lavender"
+                  >
+                    <Heart size={16} fill="#FFDEE2" /> Celebrate this moment
+                  </button>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">Coming soon...</p>
+                )}
+              </JournalCard>
+            ))}
+          </div>
+        )}
       </section>
       
       {/* Custom Milestones Section */}
@@ -209,34 +216,44 @@ const Milestones = () => {
           Special Moments
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {customMilestones.map(milestone => (
-            <JournalCard 
-              key={milestone.id} 
-              className="glass relative overflow-hidden"
-              animated
-            >
-              <div className="absolute -right-4 -top-4 bg-journal-blush p-6 rounded-full border-4 border-white/50 flex items-center justify-center rotate-12">
-                <Heart className="text-white" />
-              </div>
-              <h3 className="font-serif text-lg mb-1">{milestone.title}</h3>
-              <p className="text-sm text-gray-600 flex items-center gap-1 mb-3">
-                <Calendar size={14} /> 
-                {milestone.date}
-              </p>
-              {milestone.description && (
-                <p className="text-sm mb-3">{milestone.description}</p>
-              )}
-              
-              <button
-                onClick={() => celebrateMilestone(milestone.id)}
-                className="flex items-center gap-1 text-sm text-journal-blush hover:text-journal-lavender"
+        {isLoading ? (
+          <JournalCard>
+            <p className="text-center py-4">Loading special moments...</p>
+          </JournalCard>
+        ) : customMilestones.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {customMilestones.map(milestone => (
+              <JournalCard 
+                key={milestone.id} 
+                className="glass relative overflow-hidden"
+                animated
               >
-                <Heart size={16} fill="#FFDEE2" /> Celebrate this moment
-              </button>
-            </JournalCard>
-          ))}
-        </div>
+                <div className="absolute -right-4 -top-4 bg-journal-blush p-6 rounded-full border-4 border-white/50 flex items-center justify-center rotate-12">
+                  <Heart className="text-white" />
+                </div>
+                <h3 className="font-serif text-lg mb-1">{milestone.title}</h3>
+                <p className="text-sm text-gray-600 flex items-center gap-1 mb-3">
+                  <Calendar size={14} /> 
+                  {milestone.date}
+                </p>
+                {milestone.description && (
+                  <p className="text-sm mb-3">{milestone.description}</p>
+                )}
+                
+                <button
+                  onClick={() => celebrateMilestone(milestone.id || '')}
+                  className="flex items-center gap-1 text-sm text-journal-blush hover:text-journal-lavender"
+                >
+                  <Heart size={16} fill="#FFDEE2" /> Celebrate this moment
+                </button>
+              </JournalCard>
+            ))}
+          </div>
+        ) : (
+          <JournalCard>
+            <p className="text-center py-4">No special moments added yet. Create your first one!</p>
+          </JournalCard>
+        )}
       </section>
       
       {/* New Milestone Dialog */}

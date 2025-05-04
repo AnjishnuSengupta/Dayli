@@ -1,17 +1,22 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
 import MoodPicker from '../components/ui/MoodPicker';
 import FloatingHearts from '../components/ui/FloatingHearts';
 import { Calendar, Heart, Save, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveJournalEntry, getJournalEntries, JournalEntry } from '@/services/journalService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Journal = () => {
   const [entry, setEntry] = useState('');
   const [mood, setMood] = useState('happy');
   const [showHearts, setShowHearts] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
   
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -20,40 +25,64 @@ const Journal = () => {
     year: 'numeric'
   });
 
-  // Sample past entries
-  const pastEntries = [
-    {
-      id: 1,
-      date: "September 12, 2025",
-      content: "Today was a special day. We tried that new coffee shop downtown and spent hours talking about our dreams. I love how you listen to every word I say.",
-      author: "Emily",
-      mood: "happy"
+  // Fetch journal entries
+  const { data: journalEntries, isLoading } = useQuery({
+    queryKey: ['journal-entries'],
+    queryFn: () => currentUser ? getJournalEntries(currentUser.uid) : Promise.resolve([]),
+    enabled: !!currentUser
+  });
+
+  // Save journal entry mutation
+  const saveMutation = useMutation({
+    mutationFn: saveJournalEntry,
+    onSuccess: () => {
+      // Invalidate and refetch the journal entries
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      
+      toast({
+        title: "Entry saved with love 💕",
+        description: "Your thoughts have been preserved in your journal",
+      });
+
+      setShowHearts(true);
+      setTimeout(() => {
+        setShowHearts(false);
+      }, 2000);
+      
+      // Reset form
+      setEntry('');
     },
-    {
-      id: 2,
-      date: "September 10, 2025",
-      content: "I had a tough day at work, but your supportive messages made everything better. Thank you for being my rock.",
-      author: "Alex",
-      mood: "neutral"
+    onError: (error) => {
+      toast({
+        title: "Error saving entry",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive"
+      });
     }
-  ];
+  });
 
   const saveEntry = () => {
-    if (entry.trim().length === 0) return;
+    if (!entry.trim() || !currentUser) return;
     
-    // In a real app, we'd save the entry to a database
-    toast({
-      title: "Entry saved with love 💕",
-      description: "Your thoughts have been preserved in your journal",
+    saveMutation.mutate({
+      content: entry,
+      mood: mood,
+      authorId: currentUser.uid,
+      authorName: currentUser.displayName || 'Anonymous'
     });
+  };
 
-    setShowHearts(true);
-    setTimeout(() => {
-      setShowHearts(false);
-    }, 2000);
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'Unknown date';
     
-    // Reset form
-    setEntry('');
+    // If it's a Firebase Timestamp, convert to JS Date
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   return (
@@ -90,10 +119,10 @@ const Journal = () => {
             <button 
               onClick={saveEntry}
               className="btn-primary inline-flex items-center gap-2"
-              disabled={entry.trim().length === 0}
+              disabled={entry.trim().length === 0 || saveMutation.isPending}
             >
               <Save size={16} />
-              Save Entry
+              {saveMutation.isPending ? 'Saving...' : 'Save Entry'}
             </button>
           </div>
         </JournalCard>
@@ -102,21 +131,31 @@ const Journal = () => {
       <h2 className="text-xl font-serif mb-4">Past Entries</h2>
       
       <section className="space-y-6">
-        {pastEntries.map(entryData => (
-          <JournalCard key={entryData.id} animated>
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <p className="text-sm text-gray-500">{entryData.date}</p>
-                <div className="flex items-center gap-2 text-sm">
-                  <User size={14} /> <span>{entryData.author}</span>
-                  {entryData.mood === 'happy' && <Heart size={14} className="text-journal-blush" />}
+        {isLoading ? (
+          <JournalCard>
+            <p className="text-center py-4">Loading entries...</p>
+          </JournalCard>
+        ) : journalEntries && journalEntries.length > 0 ? (
+          journalEntries.map((entryData: JournalEntry) => (
+            <JournalCard key={entryData.id} animated>
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <p className="text-sm text-gray-500">{formatDate(entryData.createdAt)}</p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <User size={14} /> <span>{entryData.authorName}</span>
+                    {entryData.mood === 'happy' && <Heart size={14} className="text-journal-blush" />}
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <p className="whitespace-pre-line">{entryData.content}</p>
+              
+              <p className="whitespace-pre-line">{entryData.content}</p>
+            </JournalCard>
+          ))
+        ) : (
+          <JournalCard>
+            <p className="text-center py-4">No journal entries yet. Write your first one!</p>
           </JournalCard>
-        ))}
+        )}
       </section>
     </MainLayout>
   );

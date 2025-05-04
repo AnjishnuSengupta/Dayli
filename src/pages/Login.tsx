@@ -1,28 +1,54 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Heart, Mail, Lock, ArrowRight, User } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp, logIn } = useAuth();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // In a real app, we'd handle authentication here
-    // For demo purposes, we'll simulate login and navigate to dashboard
-    toast({
-      title: isSignUp ? "Welcome to Our Journal!" : "Welcome back!",
-      description: "We're so glad to see you here",
-    });
-    
-    navigate('/dashboard');
+    try {
+      if (isSignUp) {
+        await signUp(email, password, displayName);
+        toast({
+          title: "Welcome to Our Journal!",
+          description: "Your account has been created successfully.",
+        });
+      } else {
+        await logIn(email, password);
+        toast({
+          title: "Welcome back!",
+          description: "We're so glad to see you here",
+        });
+      }
+      
+      // Set authentication state in localStorage
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: "Authentication Error",
+        description: error instanceof Error ? error.message : "Failed to authenticate",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -42,6 +68,24 @@ const Login = () => {
           </h1>
           
           <form onSubmit={handleSubmit} className="journal-card space-y-6">
+            {isSignUp && (
+              <div className="space-y-2">
+                <label htmlFor="displayName" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <User size={16} />
+                  Display Name
+                </label>
+                <input
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="input-field w-full px-4 py-3"
+                  placeholder="How would you like to be called?"
+                  required={isSignUp}
+                />
+              </div>
+            )}
+            
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Mail size={16} />
@@ -77,8 +121,9 @@ const Login = () => {
             <button 
               type="submit"
               className="btn-primary w-full flex justify-center items-center gap-2"
+              disabled={isLoading}
             >
-              {isSignUp ? 'Sign Up' : 'Sign In'} <ArrowRight size={16} />
+              {isLoading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'} <ArrowRight size={16} />
             </button>
             
             <div className="pt-4 text-center">

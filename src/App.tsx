@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Journal from "./pages/Journal";
 import Memories from "./pages/Memories";
+import Milestones from "./pages/Milestones";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/memories" element={<Memories />} />
+          <Route path="/milestones" element={<Milestones />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

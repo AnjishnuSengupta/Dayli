@@ -14,11 +14,11 @@ const JournalCard: React.FC<JournalCardProps> = ({
   onClick,
   animated = false
 }) => {
-  const animationClass = animated ? 'animate-fade-in' : '';
+  const animationClass = animated ? 'animate-fade-in hover:shadow-xl hover:-translate-y-1' : '';
   
   return (
     <div 
-      className={`journal-card ${className} ${animationClass}`}
+      className={`journal-card ${className} ${animationClass} transition-all duration-300`}
       onClick={onClick}
     >
       {children}

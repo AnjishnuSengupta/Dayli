@@ -138,21 +138,8 @@ const Milestones = () => {
           </div>
         </div>
       )}
-      
-      <style jsx>{`
-        @keyframes fall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-          }
-          100% {
-            transform: translateY(100vh) rotate(360deg);
-          }
-        }
-        .confetti {
-          position: absolute;
-          pointer-events: none;
-        }
-      `}</style>
+
+      {/* Fix: Removed the invalid style jsx element and use the CSS that already exists in index.css */}
       
       <section className="mb-8 text-center">
         <h1 className="text-3xl md:text-4xl font-serif mb-2">

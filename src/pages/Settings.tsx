@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
@@ -8,9 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, updateProfile, updateEmail } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
+import { uploadFile } from '../lib/minio-client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Calendar, User as UserIcon, Mail, Camera, Loader2 } from 'lucide-react';
 
@@ -105,12 +104,8 @@ const Settings = () => {
     setIsUploading(true);
     
     try {
-      // Upload to Firebase Storage
-      const storageRef = ref(storage, `profile_pictures/${currentUser.uid}`);
-      await uploadBytes(storageRef, file);
-      
-      // Get download URL
-      const downloadURL = await getDownloadURL(storageRef);
+      // Upload using MinIO
+      const downloadURL = await uploadFile(file, 'profile_pictures');
       
       // Set new photo URL
       setPhotoUrl(downloadURL);

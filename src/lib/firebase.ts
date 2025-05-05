@@ -2,7 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeBucket } from './minio-client';
 
 // Default config for development (these are not real credentials)
 const defaultConfig = {
@@ -37,6 +37,8 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
+
+// Initialize MinIO bucket
+initializeBucket().catch(console.error);
 
 export default app;

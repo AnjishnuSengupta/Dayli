@@ -1,6 +1,6 @@
 
 import { db } from "../lib/firebase";
-import { uploadFile } from "../lib/minio-client";
+import { uploadFile } from "../lib/storage-client";
 import { 
   collection, 
   addDoc, 
@@ -30,7 +30,7 @@ export const saveMemory = async (
   imageFile: File
 ) => {
   try {
-    // First upload the image to MinIO
+    // First upload the image to Firebase Storage
     const imageUrl = await uploadFile(imageFile, 'memories');
     
     // Save the memory data with the image URL to Firestore

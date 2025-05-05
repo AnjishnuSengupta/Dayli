@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
@@ -6,10 +7,9 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, updateProfile, updateEmail } from 'firebase/auth';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { uploadFile } from '../lib/minio-client';
+import { uploadFile } from '../lib/storage-client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Calendar, User as UserIcon, Mail, Camera, Loader2 } from 'lucide-react';
 
@@ -104,7 +104,7 @@ const Settings = () => {
     setIsUploading(true);
     
     try {
-      // Upload using MinIO
+      // Upload using Firebase Storage
       const downloadURL = await uploadFile(file, 'profile_pictures');
       
       // Set new photo URL

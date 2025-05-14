@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -5,8 +6,24 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// Make toast configuration customizable
+export interface ToastOptions {
+  /**
+   * Maximum number of toasts to show at once
+   * @default 1
+   */
+  limit?: number;
+  
+  /**
+   * Duration in milliseconds before removing the toast
+   * @default 5000
+   */
+  duration?: number;
+}
+
+// Default toast configuration
+const DEFAULT_TOAST_LIMIT = 1;
+const DEFAULT_TOAST_REMOVE_DELAY = 5000;
 
 type ToasterToast = ToastProps & {
   id: string
@@ -20,6 +37,7 @@ const actionTypes = {
   UPDATE_TOAST: "UPDATE_TOAST",
   DISMISS_TOAST: "DISMISS_TOAST",
   REMOVE_TOAST: "REMOVE_TOAST",
+  SET_TOAST_OPTIONS: "SET_TOAST_OPTIONS",
 } as const
 
 let count = 0
@@ -48,14 +66,19 @@ type Action =
       type: ActionType["REMOVE_TOAST"]
       toastId?: ToasterToast["id"]
     }
+  | {
+      type: ActionType["SET_TOAST_OPTIONS"]
+      options: ToastOptions
+    }
 
 interface State {
   toasts: ToasterToast[]
+  options: ToastOptions
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string, options: ToastOptions) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
@@ -66,7 +89,7 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, TOAST_REMOVE_DELAY)
+  }, options.duration || DEFAULT_TOAST_REMOVE_DELAY)
 
   toastTimeouts.set(toastId, timeout)
 }
@@ -74,9 +97,10 @@ const addToRemoveQueue = (toastId: string) => {
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
+      const toastLimit = state.options.limit || DEFAULT_TOAST_LIMIT;
       return {
         ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+        toasts: [action.toast, ...state.toasts].slice(0, toastLimit),
       }
 
     case "UPDATE_TOAST":
@@ -90,13 +114,12 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
+      // Side effects: Add to remove queue
       if (toastId) {
-        addToRemoveQueue(toastId)
+        addToRemoveQueue(toastId, state.options)
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
+          addToRemoveQueue(toast.id, state.options)
         })
       }
 
@@ -123,12 +146,26 @@ export const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
       }
+    case "SET_TOAST_OPTIONS":
+      return {
+        ...state,
+        options: {
+          ...state.options,
+          ...action.options,
+        },
+      }
   }
 }
 
 const listeners: Array<(state: State) => void> = []
 
-let memoryState: State = { toasts: [] }
+let memoryState: State = { 
+  toasts: [],
+  options: {
+    limit: DEFAULT_TOAST_LIMIT,
+    duration: DEFAULT_TOAST_REMOVE_DELAY,
+  }
+}
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
@@ -168,6 +205,14 @@ function toast({ ...props }: Toast) {
   }
 }
 
+// Configure toast options
+function configureToasts(options: ToastOptions) {
+  dispatch({
+    type: "SET_TOAST_OPTIONS",
+    options,
+  })
+}
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -185,7 +230,9 @@ function useToast() {
     ...state,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    configure: configureToasts,
   }
 }
 
-export { useToast, toast }
+export { useToast, toast, configureToasts }
+

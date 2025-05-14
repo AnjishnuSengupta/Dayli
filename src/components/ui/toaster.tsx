@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -7,9 +8,18 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { useEffect } from "react"
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts, configure } = useToast()
+
+  // Configure toasts on component mount
+  useEffect(() => {
+    configure({
+      limit: 3,  // Show up to 3 toasts at once
+      duration: 5000,  // 5 seconds display time
+    })
+  }, [configure])
 
   return (
     <ToastProvider>

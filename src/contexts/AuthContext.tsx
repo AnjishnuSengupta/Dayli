@@ -12,12 +12,13 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { toast } from '@/components/ui/sonner';
+import { saveAuthState, saveUserData, clearAuthState, createStorableUser } from '@/utils/authStorage';
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
-  logIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<UserCredential>;
+  logIn: (email: string, password: string) => Promise<UserCredential>;
   logOut: () => Promise<void>;
   updateUserProfile: (displayName: string, photoURL: string | null) => Promise<void>;
   updateUserEmail: (email: string) => Promise<void>;
@@ -46,11 +47,18 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         await updateProfile(response.user, {
           displayName: displayName
         });
+        
+        // Save auth state and user data
+        saveAuthState(true);
+        saveUserData(createStorableUser(response.user));
       }
       
       toast.success("Account created successfully!");
+      return response;
     } catch (error) {
       console.error("Error during signup:", error);
+      clearAuthState();
+      
       if (error instanceof Error) {
         toast.error(`Signup failed: ${error.message}`);
       } else {
@@ -62,10 +70,18 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   const logIn = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const response = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Save auth state and user data
+      saveAuthState(true);
+      saveUserData(createStorableUser(response.user));
+      
       toast.success("Logged in successfully!");
+      return response;
     } catch (error) {
       console.error("Login error:", error);
+      clearAuthState();
+      
       if (error instanceof Error) {
         toast.error(`Login failed: ${error.message}`);
       } else {
@@ -78,6 +94,10 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const logOut = async () => {
     try {
       await signOut(auth);
+      
+      // Clear auth state and user data
+      clearAuthState();
+      
       toast.success("Logged out successfully!");
     } catch (error) {
       console.error("Logout error:", error);
@@ -95,6 +115,9 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         photoURL: photoURL || undefined
       });
       
+      // Update stored user data
+      saveUserData(createStorableUser(currentUser));
+      
       // Force refresh the user object to get updated data
       setCurrentUser({ ...currentUser });
       return;
@@ -109,6 +132,10 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     
     try {
       await firebaseUpdateEmail(currentUser, email);
+      
+      // Update stored user data
+      saveUserData(createStorableUser(currentUser));
+      
       // Force refresh the user object
       setCurrentUser({ ...currentUser });
       return;
@@ -121,6 +148,13 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      
+      if (user) {
+        // Update stored user data when auth state changes
+        saveAuthState(true);
+        saveUserData(createStorableUser(user));
+      }
+      
       setLoading(false);
     });
 

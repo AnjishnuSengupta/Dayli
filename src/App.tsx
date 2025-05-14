@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
+import { getAuthState } from "./utils/authStorage";
 
 // Import pages
 import Welcome from "./pages/Welcome";
@@ -19,16 +19,21 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Private route component
+// Improved private route component with better error handling
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   try {
+    // First check Firebase auth context
     const { currentUser } = useAuth();
-    const isAuthenticated = currentUser || localStorage.getItem('isAuthenticated') === 'true';
+    if (currentUser) return <>{children}</>;
+    
+    // Fallback to secure session storage if context is unavailable
+    const isAuthenticated = getAuthState();
     return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
   } catch (error) {
     console.error("Error in PrivateRoute:", error);
-    // Fallback to localStorage check if auth context fails
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    
+    // Final fallback to session-based auth check
+    const isAuthenticated = getAuthState();
     return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
   }
 };

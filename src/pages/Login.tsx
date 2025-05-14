@@ -1,12 +1,13 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, User, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { Heart, User, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoadingButton } from '@/components/ui/loading';
+import { validateLoginForm, validateRegisterForm } from '@/utils/formValidation';
+import { saveAuthState, createStorableUser, saveUserData } from '@/utils/authStorage';
 
 const Login = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -19,61 +20,40 @@ const Login = () => {
   const { signUp, logIn } = useAuth();
   const navigate = useNavigate();
 
-  const validateInputs = () => {
-    setError(null);
-    
-    if (isRegister && !name.trim()) {
-      setError("Please enter your name");
-      return false;
-    }
-    
-    if (!email.trim()) {
-      setError("Please enter your email");
-      return false;
-    }
-    
-    if (!email.includes('@') || !email.includes('.')) {
-      setError("Please enter a valid email address");
-      return false;
-    }
-    
-    if (!password) {
-      setError("Please enter a password");
-      return false;
-    }
-    
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return false;
-    }
-    
-    if (isRegister && password !== confirmPassword) {
-      setError("Passwords don't match");
-      return false;
-    }
-    
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateInputs()) return;
+    // Validate form using our utility
+    const validation = isRegister 
+      ? validateRegisterForm(name, email, password, confirmPassword)
+      : validateLoginForm(email, password);
+    
+    if (!validation.isValid) {
+      setError(validation.error);
+      return;
+    }
     
     setLoading(true);
     setError(null);
     
     try {
+      let userData = null;
+      
       if (isRegister) {
-        await signUp(email, password, name);
+        userData = await signUp(email, password, name);
         toast.success("Account created! Welcome to Our Journal!");
       } else {
-        await logIn(email, password);
+        userData = await logIn(email, password);
         toast.success("Welcome back!");
       }
       
-      // Store auth state in localStorage as a backup
-      localStorage.setItem('isAuthenticated', 'true');
+      // Store auth state in sessionStorage instead of localStorage
+      saveAuthState(true);
+      
+      // Save user data in session storage
+      if (userData?.user) {
+        saveUserData(createStorableUser(userData.user));
+      }
       
       // Navigate to dashboard
       navigate('/dashboard');
@@ -94,7 +74,8 @@ const Login = () => {
         setError("An unexpected error occurred");
       }
       
-      localStorage.removeItem('isAuthenticated');
+      // Clear auth state
+      saveAuthState(false);
     } finally {
       setLoading(false);
     }

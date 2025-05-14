@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
 import { getAuthState } from "./utils/authStorage";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Import pages
 import Welcome from "./pages/Welcome";
@@ -19,22 +21,22 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Improved private route component with better error handling
+// Improved private route component with error boundary
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   try {
     // First check Firebase auth context
     const { currentUser } = useAuth();
-    if (currentUser) return <>{children}</>;
+    if (currentUser) return <ErrorBoundary>{children}</ErrorBoundary>;
     
     // Fallback to secure session storage if context is unavailable
     const isAuthenticated = getAuthState();
-    return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+    return isAuthenticated ? <ErrorBoundary>{children}</ErrorBoundary> : <Navigate to="/login" />;
   } catch (error) {
     console.error("Error in PrivateRoute:", error);
     
     // Final fallback to session-based auth check
     const isAuthenticated = getAuthState();
-    return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+    return isAuthenticated ? <ErrorBoundary>{children}</ErrorBoundary> : <Navigate to="/login" />;
   }
 };
 
@@ -44,18 +46,20 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Welcome />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/journal" element={<PrivateRoute><Journal /></PrivateRoute>} />
-            <Route path="/memories" element={<PrivateRoute><Memories /></PrivateRoute>} />
-            <Route path="/milestones" element={<PrivateRoute><Milestones /></PrivateRoute>} />
-            <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ErrorBoundary>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Welcome />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+              <Route path="/journal" element={<PrivateRoute><Journal /></PrivateRoute>} />
+              <Route path="/memories" element={<PrivateRoute><Memories /></PrivateRoute>} />
+              <Route path="/milestones" element={<PrivateRoute><Milestones /></PrivateRoute>} />
+              <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

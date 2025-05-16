@@ -8,9 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, updateProfile, updateEmail } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
+import { useMinioStorage } from '@/hooks/use-minio-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Calendar, User as UserIcon, Mail, Camera, Loader2 } from 'lucide-react';
 
@@ -29,6 +29,7 @@ const Settings = () => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(currentUser?.photoURL || null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { upload } = useMinioStorage(); // Use MinIO for storage
   
   const { toast: hookToast } = useToast();
 
@@ -105,12 +106,14 @@ const Settings = () => {
     setIsUploading(true);
     
     try {
-      // Upload to Firebase Storage
-      const storageRef = ref(storage, `profile_pictures/${currentUser.uid}`);
-      await uploadBytes(storageRef, file);
+      // Upload to MinIO instead of Firebase Storage
+      const userId = currentUser.uid;
+      const renamedFile = new File([file], `${userId}_${Date.now()}.${file.name.split('.').pop()}`, {
+        type: file.type
+      });
       
-      // Get download URL
-      const downloadURL = await getDownloadURL(storageRef);
+      // Upload file and get URL with profile_pictures path prefix
+      const downloadURL = await upload(renamedFile, 'profile_pictures');
       
       // Set new photo URL
       setPhotoUrl(downloadURL);

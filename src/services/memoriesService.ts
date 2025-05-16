@@ -1,5 +1,5 @@
 
-import { db, storage } from "../lib/firebase";
+import { db } from "../lib/firebase";
 import { 
   collection, 
   addDoc, 
@@ -10,9 +10,10 @@ import {
   orderBy,
   Timestamp,
   updateDoc,
-  doc
+  doc,
+  deleteDoc
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { uploadFile, deleteFile } from "../lib/minio";
 
 export interface Memory {
   id?: string;
@@ -29,12 +30,8 @@ export const saveMemory = async (
   memory: Omit<Memory, 'id' | 'createdAt' | 'imageUrl'>, 
   imageFile: File
 ) => {
-  // First upload the image to Firebase Storage
-  const storageRef = ref(storage, `memories/${Date.now()}_${imageFile.name}`);
-  const uploadResult = await uploadBytes(storageRef, imageFile);
-  
-  // Get the download URL
-  const imageUrl = await getDownloadURL(uploadResult.ref);
+  // Upload the image to MinIO instead of Firebase Storage
+  const imageUrl = await uploadFile(imageFile, 'memories');
   
   // Save the memory data with the image URL to Firestore
   const memoryData = {
@@ -73,4 +70,19 @@ export const toggleFavorite = async (memoryId: string, isFavorite: boolean) => {
   await updateDoc(memoryRef, {
     isFavorite: isFavorite
   });
+};
+
+export const deleteMemory = async (memoryId: string, imageUrl: string) => {
+  try {
+    // Delete the document from Firestore
+    await deleteDoc(doc(db, "memories", memoryId));
+    
+    // Also delete the image from MinIO
+    await deleteFile(imageUrl);
+    
+    return true;
+  } catch (error) {
+    console.error("Error deleting memory:", error);
+    throw error;
+  }
 };

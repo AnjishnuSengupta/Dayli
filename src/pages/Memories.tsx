@@ -3,12 +3,14 @@ import React, { useState, useRef } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
 import FloatingHearts from '../components/ui/FloatingHearts';
-import { Camera, Plus, Bookmark, Heart, Loader2 } from 'lucide-react';
+import MemoryGallery from '../components/ui/MemoryGallery';
+import { Camera, Plus, Bookmark, Heart, Loader2, Trash2, Grid, List, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveMemory, getMemories, toggleFavorite } from '@/services/memoriesService';
+import { saveMemory, getMemories, toggleFavorite, deleteMemory, Memory } from '@/services/memoriesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useMinioStorage } from '@/hooks/use-minio-storage';
 
 const Memories = () => {
   const [showHearts, setShowHearts] = useState(false);
@@ -18,16 +20,44 @@ const Memories = () => {
   const [caption, setCaption] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
+  const [filterFavorites, setFilterFavorites] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
+  const { upload } = useMinioStorage(); // Use the MinIO hook
   
   // Fetch memories
   const { data: memories, isLoading } = useQuery({
     queryKey: ['memories'],
     queryFn: getMemories
   });
+
+  // Filter memories based on search term and favorites filter
+  const filteredMemories = React.useMemo(() => {
+    if (!memories) return [];
+    
+    return memories.filter((memory: Memory) => {
+      // Filter by favorites if enabled
+      if (filterFavorites && !memory.isFavorite) {
+        return false;
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        return (
+          memory.title.toLowerCase().includes(term) ||
+          memory.caption.toLowerCase().includes(term) ||
+          memory.date.toLowerCase().includes(term)
+        );
+      }
+      
+      return true;
+    });
+  }, [memories, filterFavorites, searchTerm]);
 
   // Save memory mutation
   const saveMutation = useMutation({
@@ -72,6 +102,27 @@ const Memories = () => {
     }
   });
 
+  // Delete memory mutation
+  const deleteMutation = useMutation({
+    mutationFn: ({ id, imageUrl }: { id: string, imageUrl: string }) => 
+      deleteMemory(id, imageUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['memories'] });
+      
+      toast({
+        title: "Memory deleted",
+        description: "Your memory has been removed",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting memory",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -86,7 +137,7 @@ const Memories = () => {
     }
   };
 
-  const saveMemoryHandler = () => {
+  const saveMemoryHandler = async () => {
     if (!title.trim() || !date.trim() || !caption.trim() || !selectedImage || !currentUser) {
       toast({
         title: "Missing information",
@@ -104,6 +155,12 @@ const Memories = () => {
     };
     
     saveMutation.mutate({ memory, file: selectedImage });
+  };
+  
+  const handleDeleteMemory = (id: string, imageUrl: string) => {
+    if (window.confirm("Are you sure you want to delete this memory? This action cannot be undone.")) {
+      deleteMutation.mutate({ id, imageUrl });
+    }
   };
 
   const resetForm = () => {
@@ -123,15 +180,15 @@ const Memories = () => {
       {showHearts && <FloatingHearts count={3} />}
       
       <section className="mb-8 text-center">
-        <h1 className="text-3xl md:text-4xl font-serif mb-2">
+        <h1 className="text-3xl md:text-4xl font-serif mb-2 animate-fade-in">
           Memory Board
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 animate-fade-in opacity-0" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
           Capture your special moments together
         </p>
       </section>
       
-      <section className="mb-8">
+      <section className="mb-8 animate-fade-in opacity-0" style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}>
         <JournalCard>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-serif">Add New Memory</h2>
@@ -150,9 +207,61 @@ const Memories = () => {
         </JournalCard>
       </section>
       
-      <section>
-        <div className="flex justify-between items-center mb-4">
+      <section className="animate-fade-in opacity-0" style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <h2 className="text-xl font-serif">Your Memories</h2>
+          
+          <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
+            {/* Search input */}
+            <div className="relative w-full md:w-auto">
+              <input
+                type="text"
+                placeholder="Search memories..."
+                className="input-field py-2 pl-3 pr-10 text-sm w-full md:w-auto"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setSearchTerm('')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            
+            {/* Favorites filter */}
+            <button
+              className={`px-3 py-2 rounded-xl text-sm flex items-center gap-1 transition-colors ${
+                filterFavorites 
+                  ? 'bg-journal-blush/20 text-pink-600' 
+                  : 'bg-white/70 text-gray-600 hover:bg-white'
+              }`}
+              onClick={() => setFilterFavorites(!filterFavorites)}
+            >
+              <Heart size={16} fill={filterFavorites ? "#FFDEE2" : "transparent"} />
+              Favorites
+            </button>
+            
+            {/* View mode toggle */}
+            <div className="flex bg-white/70 rounded-xl p-1">
+              <button
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-journal-lavender/30' : 'hover:bg-gray-100'}`}
+                onClick={() => setViewMode('grid')}
+                title="Grid view"
+              >
+                <Grid size={16} />
+              </button>
+              <button
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'masonry' ? 'bg-journal-lavender/30' : 'hover:bg-gray-100'}`}
+                onClick={() => setViewMode('masonry')}
+                title="Masonry view"
+              >
+                <List size={16} />
+              </button>
+            </div>
+          </div>
         </div>
         
         {isLoading ? (
@@ -160,48 +269,26 @@ const Memories = () => {
             <Loader2 className="animate-spin text-journal-lavender" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {memories && memories.length > 0 ? memories.map((memory: any) => (
-              <JournalCard key={memory.id} className="p-4" animated>
-                <div className="relative rounded-lg overflow-hidden mb-4">
-                  <img 
-                    src={memory.imageUrl} 
-                    alt={memory.title} 
-                    className="w-full aspect-video object-cover"
-                  />
-                  <button 
-                    className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white transition-all"
-                    onClick={() => bookmarkMemory(memory.id, !!memory.isFavorite)}
-                  >
-                    <Bookmark 
-                      size={16} 
-                      fill={memory.isFavorite ? "#FFDEE2" : "transparent"}
-                    />
-                  </button>
-                </div>
-                
-                <h3 className="font-medium text-lg mb-1">{memory.title}</h3>
-                <p className="text-sm text-gray-500 mb-2">{memory.date}</p>
-                <p className="text-sm italic">{memory.caption}</p>
-                
-                <div className="mt-4 flex justify-end">
-                  <button 
-                    className="flex items-center gap-1 text-sm text-journal-blush"
-                    onClick={() => bookmarkMemory(memory.id, !!memory.isFavorite)}
-                  >
-                    <Heart size={16} fill={memory.isFavorite ? "#FFDEE2" : "transparent"} /> 
-                    {memory.isFavorite ? "Unfavorite" : "Favorite"}
-                  </button>
-                </div>
-              </JournalCard>
-            )) : (
-              <div className="col-span-2">
+          <>
+            {filteredMemories && filteredMemories.length > 0 ? (
+              <MemoryGallery
+                memories={filteredMemories}
+                viewMode={viewMode}
+                onFavorite={bookmarkMemory}
+                onDelete={handleDeleteMemory}
+              />
+            ) : (
+              <div>
                 <JournalCard>
-                  <p className="text-center py-8">No memories yet. Add your first special moment!</p>
+                  <p className="text-center py-8">
+                    {memories && memories.length > 0 
+                      ? 'No memories match your search or filter criteria.' 
+                      : 'No memories yet. Add your first special moment!'}
+                  </p>
                 </JournalCard>
               </div>
             )}
-          </div>
+          </>
         )}
       </section>
       
@@ -213,65 +300,68 @@ const Memories = () => {
           </DialogHeader>
           
           <div className="space-y-4">
-            <div>
+            <div className="animate-fade-in">
               <label className="block text-sm font-medium mb-1">Memory Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="input-field w-full"
+                className="input-field w-full focus:ring-pink-400 transition-all"
                 placeholder="Our first hike together"
               />
             </div>
             
-            <div>
+            <div className="animate-fade-in opacity-0" style={{ animationDelay: '100ms', animationFillMode: 'forwards' }}>
               <label className="block text-sm font-medium mb-1">Date</label>
               <input
                 type="text"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="input-field w-full"
+                className="input-field w-full focus:ring-pink-400 transition-all"
                 placeholder="September 15, 2025"
               />
             </div>
             
-            <div>
+            <div className="animate-fade-in opacity-0" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
               <label className="block text-sm font-medium mb-1">Caption</label>
               <input
                 type="text"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="input-field w-full"
+                className="input-field w-full focus:ring-pink-400 transition-all"
                 placeholder="That beautiful sunset we saw..."
               />
             </div>
             
-            <div>
+            <div className="animate-fade-in opacity-0" style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}>
               <label className="block text-sm font-medium mb-1">Photo</label>
               {previewUrl ? (
-                <div className="relative">
+                <div className="relative rounded-md overflow-hidden">
                   <img 
                     src={previewUrl} 
                     alt="Preview" 
                     className="w-full h-48 object-cover rounded-md mb-2" 
                   />
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setPreviewUrl(null);
-                    }}
-                    className="absolute top-2 right-2 bg-white/80 p-1 rounded-full"
-                  >
-                    ✕
-                  </button>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setPreviewUrl(null);
+                      }}
+                      className="absolute top-2 right-2 bg-white/80 p-1 rounded-full hover:bg-white transition-all"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 rounded-md p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-white/30"
+                  className="border-2 border-dashed border-gray-200 rounded-md p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-white/30 transition-all"
                 >
                   <Camera size={32} className="mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">Click to select an image</p>
+                  <p className="text-xs text-gray-400 mt-1">Supports JPG, PNG, GIF</p>
                 </div>
               )}
               <input
@@ -283,7 +373,7 @@ const Memories = () => {
               />
             </div>
             
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-4 animate-fade-in opacity-0" style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -300,7 +390,12 @@ const Memories = () => {
                 className="btn-primary"
                 disabled={saveMutation.isPending}
               >
-                {saveMutation.isPending ? 'Saving...' : 'Save Memory'}
+                {saveMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin" size={16} />
+                    Saving...
+                  </span>
+                ) : 'Save Memory'}
               </button>
             </div>
           </div>

@@ -1,4 +1,3 @@
-
 import React, { ReactNode, CSSProperties } from 'react';
 
 interface JournalCardProps {
@@ -6,7 +5,7 @@ interface JournalCardProps {
   className?: string;
   onClick?: () => void;
   animated?: boolean;
-  animationType?: 'fade' | 'zoom' | 'slide-up' | 'slide-right' | 'float' | 'bounce';
+  animationType?: 'fade' | 'zoom' | 'slide-up' | 'slide-right' | 'float' | 'bounce' | 'scale-in' | 'slide-in-right';
   delay?: number;
   hover?: 'scale' | 'lift' | 'glow' | 'none';
   transition?: boolean;
@@ -42,6 +41,12 @@ const JournalCard: React.FC<JournalCardProps> = ({
         break;
       case 'bounce':
         animationClass = 'animate-bounce-in';
+        break;
+      case 'scale-in':
+        animationClass = 'animate-scale-in';
+        break;
+      case 'slide-in-right':
+        animationClass = 'animate-slide-in-right';
         break;
       case 'fade':
       default:

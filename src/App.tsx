@@ -3,11 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
 import { getAuthState } from "./utils/authStorage";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AnimatedRoute from "./components/AnimatedRoute";
 
 // Import pages
 import Welcome from "./pages/Welcome";
@@ -48,16 +49,18 @@ const App = () => (
         <Sonner />
         <ErrorBoundary>
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Welcome />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-              <Route path="/journal" element={<PrivateRoute><Journal /></PrivateRoute>} />
-              <Route path="/memories" element={<PrivateRoute><Memories /></PrivateRoute>} />
-              <Route path="/milestones" element={<PrivateRoute><Milestones /></PrivateRoute>} />
-              <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AnimatedRoute>
+              <Routes>
+                <Route path="/" element={<Welcome />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                <Route path="/journal" element={<PrivateRoute><Journal /></PrivateRoute>} />
+                <Route path="/memories" element={<PrivateRoute><Memories /></PrivateRoute>} />
+                <Route path="/milestones" element={<PrivateRoute><Milestones /></PrivateRoute>} />
+                <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AnimatedRoute>
           </BrowserRouter>
         </ErrorBoundary>
       </TooltipProvider>

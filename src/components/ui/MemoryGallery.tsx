@@ -3,6 +3,7 @@ import { Memory } from '@/services/memoriesService';
 import { Bookmark, Heart, Trash2, Maximize } from 'lucide-react';
 import ImageLightbox from './ImageLightbox';
 import JournalCard from './JournalCard';
+import ZoomStagger from './ZoomStagger';
 
 interface MemoryGalleryProps {
   memories: Memory[];
@@ -36,8 +37,7 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
       <>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Column 1 */}
-          <div className="flex flex-col gap-4 stagger-animate slide-up"
-               style={{ animationDuration: '0.5s' }}>
+          <ZoomStagger className="flex flex-col gap-4" baseDelay={0}>
             {column1.map((memory, index) => (
               <MemoryCard
                 key={memory.id}
@@ -46,13 +46,12 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
                 onFavorite={onFavorite}
                 onDelete={onDelete}
                 openLightbox={openLightbox}
-                delay={index * 100}
               />
             ))}
-          </div>
+          </ZoomStagger>
           
           {/* Column 2 */}
-          <div className="flex flex-col gap-4 stagger-animate" style={{ animationDelay: '100ms' }}>
+          <ZoomStagger className="flex flex-col gap-4" baseDelay={100}>
             {column2.map((memory, index) => (
               <MemoryCard
                 key={memory.id}
@@ -63,10 +62,10 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
                 openLightbox={openLightbox}
               />
             ))}
-          </div>
+          </ZoomStagger>
           
           {/* Column 3 */}
-          <div className="flex flex-col gap-4 stagger-animate" style={{ animationDelay: '200ms' }}>
+          <ZoomStagger className="flex flex-col gap-4" baseDelay={200}>
             {column3.map((memory, index) => (
               <MemoryCard
                 key={memory.id}
@@ -77,7 +76,7 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
                 openLightbox={openLightbox}
               />
             ))}
-          </div>
+          </ZoomStagger>
         </div>
         
         <ImageLightbox
@@ -93,7 +92,7 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
   // Default grid view
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 stagger-animate">
+      <ZoomStagger className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {memories.map((memory, index) => (
           <MemoryCard
             key={memory.id}
@@ -104,7 +103,7 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
             openLightbox={openLightbox}
           />
         ))}
-      </div>
+      </ZoomStagger>
       
       <ImageLightbox
         images={imageUrls}
@@ -116,14 +115,14 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
   );
 };
 
-// Update the MemoryCard component to use our new animations
+// Memory card component for displaying individual memories
 interface MemoryCardProps {
   memory: Memory;
   index: number;
   onFavorite: (id: string, isFavorite: boolean) => void;
   onDelete: (id: string, imageUrl: string) => void;
   openLightbox: (index: number) => void;
-  delay?: number; // Add delay prop for staggered animations
+  delay?: number;
 }
 
 const MemoryCard: React.FC<MemoryCardProps> = ({
@@ -154,7 +153,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
           src={memory.imageUrl} 
           alt={memory.title} 
           className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy" // Add lazy loading for better performance
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         

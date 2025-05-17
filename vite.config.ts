@@ -19,4 +19,22 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 900, // Increase the chunk size warning limit
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split the vendor code into separate chunks
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          'ui': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-accordion'
+          ]
+        }
+      }
+    }
+  },
 }));

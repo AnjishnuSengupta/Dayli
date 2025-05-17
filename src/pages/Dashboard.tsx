@@ -6,6 +6,7 @@ import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
 import MoodPicker from '../components/ui/MoodPicker';
 import FloatingHearts from '../components/ui/FloatingHearts';
+import ZoomStagger from '../components/ui/ZoomStagger';
 
 const Dashboard = () => {
   const [mood, setMood] = useState('happy');
@@ -61,21 +62,23 @@ const Dashboard = () => {
         </div>
         
         <div className="grid gap-4">
-          {recentEntries.map((entry) => (
-            <JournalCard key={entry.id} className="cursor-pointer" animated>
-              <h3 className="font-medium mb-1">{entry.title}</h3>
-              <p className="text-sm text-gray-500 mb-2">{entry.date}</p>
-              <p className="text-sm">{entry.excerpt}</p>
-            </JournalCard>
-          ))}
-          <Link to="/journal">
-            <div className="journal-card bg-gray-50/80 border-dashed border-2 border-gray-200 flex items-center justify-center py-10 hover:bg-white/80 transition-all">
-              <span className="flex items-center gap-2 text-gray-500">
-                <Plus size={18} />
-                Write a new entry
-              </span>
-            </div>
-          </Link>
+          <ZoomStagger>
+            {recentEntries.map((entry) => (
+              <JournalCard key={entry.id} className="cursor-pointer" animated>
+                <h3 className="font-medium mb-1">{entry.title}</h3>
+                <p className="text-sm text-gray-500 mb-2">{entry.date}</p>
+                <p className="text-sm">{entry.excerpt}</p>
+              </JournalCard>
+            ))}
+            <Link to="/journal">
+              <div className="journal-card bg-gray-50/80 border-dashed border-2 border-gray-200 flex items-center justify-center py-10 hover:bg-white/80 transition-all">
+                <span className="flex items-center gap-2 text-gray-500">
+                  <Plus size={18} />
+                  Write a new entry
+                </span>
+              </div>
+            </Link>
+          </ZoomStagger>
         </div>
       </section>
       
@@ -88,19 +91,21 @@ const Dashboard = () => {
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          {recentMemories.map((memory) => (
-            <JournalCard key={memory.id} className="cursor-pointer p-3" animated>
-              <div className="aspect-square rounded-lg overflow-hidden mb-2">
-                <img 
-                  src={memory.imageUrl} 
-                  alt={memory.title} 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="font-medium text-sm mb-1">{memory.title}</h3>
-              <p className="text-xs text-gray-500">{memory.date}</p>
-            </JournalCard>
-          ))}
+          <ZoomStagger baseDelay={200} incrementDelay={100}>
+            {recentMemories.map((memory) => (
+              <JournalCard key={memory.id} className="cursor-pointer p-3" animated>
+                <div className="aspect-square rounded-lg overflow-hidden mb-2">
+                  <img 
+                    src={memory.imageUrl} 
+                    alt={memory.title} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <h3 className="font-medium text-sm mb-1">{memory.title}</h3>
+                <p className="text-xs text-gray-500">{memory.date}</p>
+              </JournalCard>
+            ))}
+          </ZoomStagger>
         </div>
       </section>
       

@@ -93,6 +93,41 @@
   100% { transform: scale(1); }
 }
 
+/* Page transition animations */
+@keyframes page-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes page-exit {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+}
+
+/* Zoom staggered animations */
+@keyframes zoom-stagger {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Confetti animation */
 @keyframes fall {
   0% {
@@ -326,6 +361,34 @@
 .delay-400 {
   animation-delay: 400ms;
 }
+
+/* Page transition animations */
+.page-transition-enter {
+  animation: page-enter 0.4s ease forwards;
+}
+
+.page-transition-exit {
+  animation: page-exit 0.4s ease forwards;
+}
+
+/* Zoom staggered animations */
+.zoom-stagger-item {
+  animation: zoom-stagger 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Generate staggered delay classes for list items */
+.zoom-stagger-item:nth-child(1) { animation-delay: 0ms; }
+.zoom-stagger-item:nth-child(2) { animation-delay: 50ms; }
+.zoom-stagger-item:nth-child(3) { animation-delay: 100ms; }
+.zoom-stagger-item:nth-child(4) { animation-delay: 150ms; }
+.zoom-stagger-item:nth-child(5) { animation-delay: 200ms; }
+.zoom-stagger-item:nth-child(6) { animation-delay: 250ms; }
+.zoom-stagger-item:nth-child(7) { animation-delay: 300ms; }
+.zoom-stagger-item:nth-child(8) { animation-delay: 350ms; }
+.zoom-stagger-item:nth-child(9) { animation-delay: 400ms; }
+.zoom-stagger-item:nth-child(10) { animation-delay: 450ms; }
+.zoom-stagger-item:nth-child(n+11) { animation-delay: 500ms; }
 
 .delay-500 {
   animation-delay: 500ms;

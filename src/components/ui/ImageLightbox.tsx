@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageLightboxProps {
@@ -75,10 +75,17 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-screen-lg w-screen h-screen md:h-auto flex items-center justify-center bg-black/95 p-0 border-none animate-zoom-in">
+      <DialogContent className="max-w-screen-lg w-screen h-screen md:h-auto flex items-center justify-center bg-black/95 p-0 border-none animate-zoom-in" aria-describedby="lightbox-desc">
+        {/* Add visually hidden title and description for accessibility */}
+        <div className="sr-only">
+          <DialogTitle id="lightbox-title">Image Lightbox</DialogTitle>
+          <div id="lightbox-desc">Image viewer. Use arrow keys to navigate between images.</div>
+        </div>
+        
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black transition-all z-10"
+          aria-label="Close lightbox"
         >
           <X size={20} />
         </button>

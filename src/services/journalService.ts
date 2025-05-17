@@ -31,21 +31,28 @@ export const saveJournalEntry = async (entry: Omit<JournalEntry, 'id' | 'created
 };
 
 export const getJournalEntries = async (userId: string) => {
-  const q = query(
-    collection(db, "journal_entries"),
-    orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await getDocs(q);
-  
-  const entries: JournalEntry[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data() as Omit<JournalEntry, 'id'>;
-    entries.push({
-      id: doc.id,
-      ...data
+  try {
+    // Filter by authorId to ensure permission and relevance
+    const q = query(
+      collection(db, "journal_entries"),
+      where("authorId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    const entries: JournalEntry[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data() as Omit<JournalEntry, 'id'>;
+      entries.push({
+        id: doc.id,
+        ...data
+      });
     });
-  });
-  
-  return entries;
+    
+    return entries;
+  } catch (error) {
+    console.error("Error fetching journal entries:", error);
+    throw error;
+  }
 };

@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
 import { Input } from '@/components/ui/input';
@@ -18,20 +17,32 @@ import { Calendar, User as UserIcon, Mail, Camera, Loader2 } from 'lucide-react'
 interface UserSettings {
   relationshipStartDate: string;
   darkMode: boolean;
+  userId?: string;
+  createdAt?: Date;
 }
 
 const Settings = () => {
-  const { currentUser, updateUserEmail, updateUserProfile } = useAuth();
+  const { currentUser, updateUserProfile, updateUserEmail } = useAuth();
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [relationshipStartDate, setRelationshipStartDate] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(currentUser?.photoURL || null);
   const [isUploading, setIsUploading] = useState(false);
+  const [dateError, setDateError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { upload } = useMinioStorage(); // Use MinIO for storage
   
   const { toast: hookToast } = useToast();
+
+  // Apply dark mode when the setting changes
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // Fetch user settings from Firestore
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
@@ -63,6 +74,31 @@ const Settings = () => {
     enabled: !!currentUser?.uid
   });
 
+  // Function to validate the relationship start date
+  const validateDate = (dateString: string): boolean => {
+    if (!dateString.trim()) {
+      return true; // Empty is allowed
+    }
+    
+    // Check if it's a valid date format
+    const dateRegex = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},\s\d{4}$/;
+    if (!dateRegex.test(dateString)) {
+      setDateError("Please use format: Month Day, Year (e.g., August 29, 2025)");
+      return false;
+    }
+    
+    // Check if it's a valid date
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      setDateError("Please enter a valid date");
+      return false;
+    }
+    
+    // Date is valid
+    setDateError('');
+    return true;
+  };
+
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
@@ -87,7 +123,8 @@ const Settings = () => {
           // Update existing document
           await updateDoc(userSettingsRef, {
             relationshipStartDate,
-            darkMode: isDarkMode
+            darkMode: isDarkMode,
+            updatedAt: new Date()
           });
         } else {
           // Create new document with setDoc
@@ -95,7 +132,8 @@ const Settings = () => {
             relationshipStartDate,
             darkMode: isDarkMode,
             userId: currentUser.uid,
-            createdAt: new Date()
+            createdAt: new Date(),
+            updatedAt: new Date()
           });
         }
         
@@ -132,10 +170,14 @@ const Settings = () => {
       
       // Set new photo URL
       setPhotoUrl(downloadURL);
+      
+      // Immediately update the profile with the new photo
+      await updateUserProfile(displayName, downloadURL);
+      
       toast.success("Profile picture uploaded!");
     } catch (error) {
       console.error("Error uploading profile picture:", error);
-      toast.error("Failed to upload profile picture");
+      toast.error("Failed to upload profile picture: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsUploading(false);
     }
@@ -156,6 +198,11 @@ const Settings = () => {
       return;
     }
     
+    // Validate relationship date
+    if (!validateDate(relationshipStartDate)) {
+      return;
+    }
+    
     updateProfileMutation.mutate();
   };
 
@@ -165,7 +212,7 @@ const Settings = () => {
         <h1 className="text-3xl md:text-4xl font-serif mb-2">
           Your Settings
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-300">
           Customize your profile and preferences
         </p>
       </section>
@@ -265,10 +312,19 @@ const Settings = () => {
                   id="rel-date"
                   type="text"
                   value={relationshipStartDate}
-                  onChange={(e) => setRelationshipStartDate(e.target.value)}
-                  className="input-field w-full"
+                  onChange={(e) => {
+                    setRelationshipStartDate(e.target.value);
+                    setDateError(''); // Clear error on typing
+                  }}
+                  className={`input-field w-full ${dateError ? 'border-red-500' : ''}`}
                   placeholder="e.g., August 29, 2025"
+                  onBlur={() => validateDate(relationshipStartDate)}
                 />
+                {dateError && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {dateError}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   This date will be used to calculate milestones
                 </p>
@@ -292,6 +348,7 @@ const Settings = () => {
               <Switch 
                 checked={isDarkMode}
                 onCheckedChange={setIsDarkMode}
+                aria-label="Toggle dark mode"
               />
             </div>
           </JournalCard>

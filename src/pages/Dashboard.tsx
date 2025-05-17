@@ -74,33 +74,30 @@ const Dashboard = () => {
       
       setIsLoadingEntries(true);
       try {
-        // Use a query to get only the 3 most recent entries
-        const entriesCollection = collection(db, "journal_entries");
-        const entriesQuery = query(
-          entriesCollection,
-          orderBy("createdAt", "desc"),
-          limit(3)
-        );
+        // Use the service function to get entries with proper filtering
+        const allEntries = await getJournalEntries(currentUser.uid);
         
-        const querySnapshot = await getDocs(entriesQuery);
-        const entries: EnhancedJournalEntry[] = [];
-        
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as Omit<JournalEntry, 'id'>;
-          const contentPreview = data.content.length > 80 
-            ? data.content.substring(0, 80) + '...' 
-            : data.content;
+        // Get only the 3 most recent entries
+        const recentEntries: EnhancedJournalEntry[] = allEntries.slice(0, 3).map(entry => {
+          // Create excerpt
+          const contentPreview = entry.content.length > 80 
+            ? entry.content.substring(0, 80) + '...' 
+            : entry.content;
             
-          entries.push({
-            id: doc.id,
-            ...data,
+          return {
+            ...entry,
             excerpt: contentPreview
-          });
+          };
         });
         
-        setRecentEntries(entries);
+        setRecentEntries(recentEntries);
       } catch (error) {
         console.error("Error fetching recent entries:", error);
+        toast({
+          title: "Error",
+          description: "Could not load your journal entries",
+          variant: "destructive"
+        });
       } finally {
         setIsLoadingEntries(false);
       }
@@ -116,28 +113,20 @@ const Dashboard = () => {
       
       setIsLoadingMemories(true);
       try {
-        // Use a query to get only the 4 most recent memories
-        const memoriesCollection = collection(db, "memories");
-        const memoriesQuery = query(
-          memoriesCollection,
-          orderBy("createdAt", "desc"),
-          limit(4)
-        );
+        // Use the service function to get memories with proper filtering
+        const allMemories = await getMemories(currentUser.uid);
         
-        const querySnapshot = await getDocs(memoriesQuery);
-        const memories: Memory[] = [];
+        // Get only the 4 most recent memories
+        const recentMemories = allMemories.slice(0, 4);
         
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as Omit<Memory, 'id'>;
-          memories.push({
-            id: doc.id,
-            ...data
-          });
-        });
-        
-        setRecentMemories(memories);
+        setRecentMemories(recentMemories);
       } catch (error) {
         console.error("Error fetching recent memories:", error);
+        toast({
+          title: "Error",
+          description: "Could not load your memories",
+          variant: "destructive"
+        });
       } finally {
         setIsLoadingMemories(false);
       }

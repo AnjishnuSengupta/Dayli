@@ -77,7 +77,7 @@ const JournalCard: React.FC<JournalCardProps> = ({
   
   return (
     <div 
-      className={`journal-card bg-white rounded-xl shadow-md overflow-hidden ${className} ${animationClass} ${hoverClass} ${transitionClass}`}
+      className={`journal-card bg-white dark:bg-gray-800 dark:text-white rounded-xl shadow-md overflow-hidden ${className} ${animationClass} ${hoverClass} ${transitionClass}`}
       style={combinedStyle}
       onClick={onClick}
     >

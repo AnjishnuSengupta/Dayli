@@ -75,6 +75,13 @@ export default {
           mint: '#E0F5E9',
           cream: '#FFF9EB',
           gray: '#F1F0FB',
+          'dark-peach': '#B38371',
+          'dark-lavender': '#8D7AC7',
+          'dark-skyblue': '#5A7DA7',
+          'dark-blush': '#B07E87',
+          'dark-mint': '#7FA78F',
+          'dark-cream': '#B3A77F',
+          'dark-gray': '#6E6E8A',
         }
 			},
 			borderRadius: {

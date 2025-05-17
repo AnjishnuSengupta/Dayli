@@ -45,24 +45,31 @@ export const saveMemory = async (
   return docRef.id;
 };
 
-export const getMemories = async () => {
-  const q = query(
-    collection(db, "memories"),
-    orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await getDocs(q);
-  
-  const memories: Memory[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data() as Omit<Memory, 'id'>;
-    memories.push({
-      id: doc.id,
-      ...data
+export const getMemories = async (userId: string) => {
+  try {
+    // Filter by createdBy to ensure permission and relevance
+    const q = query(
+      collection(db, "memories"),
+      where("createdBy", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    const memories: Memory[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data() as Omit<Memory, 'id'>;
+      memories.push({
+        id: doc.id,
+        ...data
+      });
     });
-  });
-  
-  return memories;
+    
+    return memories;
+  } catch (error) {
+    console.error("Error fetching memories:", error);
+    throw error;
+  }
 };
 
 export const toggleFavorite = async (memoryId: string, isFavorite: boolean) => {

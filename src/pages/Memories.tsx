@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveMemory, getMemories, toggleFavorite, deleteMemory, Memory } from '@/services/memoriesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useMinioStorage } from '@/hooks/use-minio-storage';
 
 const Memories = () => {
@@ -31,8 +31,9 @@ const Memories = () => {
   
   // Fetch memories
   const { data: memories, isLoading } = useQuery({
-    queryKey: ['memories'],
-    queryFn: getMemories
+    queryKey: ['memories', currentUser?.uid],
+    queryFn: () => currentUser ? getMemories(currentUser.uid) : Promise.resolve([]),
+    enabled: !!currentUser?.uid
   });
 
   // Filter memories based on search term and favorites filter
@@ -305,6 +306,9 @@ const Memories = () => {
         <DialogContent className="glass border-journal-lavender/30 sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-serif">Create New Memory</DialogTitle>
+            <p className="text-sm text-muted-foreground" id="memory-form-description">
+              Add details and a photo of a special moment you want to remember.
+            </p>
           </DialogHeader>
           
           <div className="space-y-4">

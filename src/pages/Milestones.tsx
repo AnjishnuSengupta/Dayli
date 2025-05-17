@@ -5,7 +5,7 @@ import JournalCard from '../components/ui/JournalCard';
 import FloatingHearts from '../components/ui/FloatingHearts';
 import { Calendar, Trophy, Plus, Heart, Award, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { addMilestone, getMilestones, generateAutomaticMilestones } from '@/services/milestonesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -261,6 +261,9 @@ const Milestones = () => {
         <DialogContent className="glass border-journal-lavender/30">
           <DialogHeader>
             <DialogTitle className="text-xl font-serif">Add a Special Moment</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm">
+              Capture important milestones in your relationship journey.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">

@@ -35,6 +35,10 @@ const MainLayout = ({ children, showNav = true }: MainLayoutProps) => {
         } catch (error) {
           console.error("Error fetching dark mode preference:", error);
         }
+      } else {
+        // If no user is logged in, remove dark mode
+        setDarkMode(false);
+        document.documentElement.classList.remove('dark');
       }
     };
 

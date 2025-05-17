@@ -17,10 +17,13 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
 }) => {
   const [index, setIndex] = useState(currentIndex);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setIndex(currentIndex);
+      setIsLoading(true);
+      setImageError(false);
     }
   }, [currentIndex, isOpen]);
 
@@ -38,6 +41,12 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
   const handleImageLoad = () => {
     setIsLoading(false);
+    setImageError(false);
+  };
+
+  const handleImageError = () => {
+    setIsLoading(false);
+    setImageError(true);
   };
 
   // Handle keyboard navigation
@@ -99,12 +108,24 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
             </div>
           )}
           
-          <img
-            src={images[index]}
-            alt="Lightbox"
-            className="max-w-full max-h-full object-contain animate-fade-in"
-            onLoad={handleImageLoad}
-          />
+          {imageError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <p>Failed to load image</p>
+            </div>
+          ) : (
+            <img
+              src={images[index]}
+              alt="Lightbox"
+              className="max-w-full max-h-full object-contain animate-fade-in"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+          )}
           
           {/* Image counter */}
           {images.length > 1 && (

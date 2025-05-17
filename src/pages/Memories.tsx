@@ -147,6 +147,14 @@ const Memories = () => {
       return;
     }
     
+    // Show loading toast for large images
+    if (selectedImage.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Uploading image",
+        description: "Large images may take a moment to upload",
+      });
+    }
+    
     const memory = {
       title,
       date,

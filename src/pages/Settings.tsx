@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, updateProfile, updateEmail } from 'firebase/auth';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useMinioStorage } from '@/hooks/use-minio-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -79,10 +79,25 @@ const Settings = () => {
         
         // Update user settings in Firestore
         const userSettingsRef = doc(db, "user_settings", currentUser.uid);
-        await updateDoc(userSettingsRef, {
-          relationshipStartDate,
-          darkMode: isDarkMode
-        });
+        
+        // Check if document exists first
+        const docSnap = await getDoc(userSettingsRef);
+        
+        if (docSnap.exists()) {
+          // Update existing document
+          await updateDoc(userSettingsRef, {
+            relationshipStartDate,
+            darkMode: isDarkMode
+          });
+        } else {
+          // Create new document with setDoc
+          await setDoc(userSettingsRef, {
+            relationshipStartDate,
+            darkMode: isDarkMode,
+            userId: currentUser.uid,
+            createdAt: new Date()
+          });
+        }
         
         return true;
       } catch (error) {

@@ -148,13 +148,18 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
       hover="lift"
       style={animationStyle}
     >
-      <div className="relative rounded-lg overflow-hidden mb-4">
-        <img 
-          src={memory.imageUrl} 
-          alt={memory.title} 
-          className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
+      <div className="relative rounded-lg overflow-hidden mb-4">          <img 
+            src={memory.imageUrl} 
+            alt={memory.title} 
+            className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            width="450"
+            height="300"
+            onError={(e) => {
+              // Fallback if image fails to load
+              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/450x300?text=Image+Not+Found';
+            }}
+          />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 duration-300">

@@ -14,12 +14,13 @@ export const useMinioStorage = () => {
     setError(null);
     
     try {
-      // Simulate progress - in a real implementation,
-      // you could use the axios upload progress events
+      // Implement a smarter progress simulation that depends on file size
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
-          const nextProgress = prev + Math.random() * 20;
-          return nextProgress > 90 ? 90 : nextProgress;
+          // Slow down progress for larger files to provide a better user experience
+          const increment = file.size > 5 * 1024 * 1024 ? 5 : Math.random() * 15;
+          const nextProgress = prev + increment;
+          return nextProgress > 95 ? 95 : nextProgress;
         });
       }, 300);
       

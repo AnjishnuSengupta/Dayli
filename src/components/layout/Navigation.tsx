@@ -6,7 +6,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const Navigation = () => {
+interface NavigationProps {
+  darkMode?: boolean;
+}
+
+const Navigation = ({ darkMode = false }: NavigationProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const { currentUser, logOut } = useAuth();
@@ -33,10 +37,10 @@ const Navigation = () => {
   };
 
   return (
-    <nav className="py-4 px-6 bg-white/70 backdrop-blur-lg shadow-sm sticky top-0 z-40">
+    <nav className={`py-4 px-6 ${darkMode ? 'bg-gray-800/70 text-white' : 'bg-white/70 text-gray-800'} backdrop-blur-lg shadow-sm sticky top-0 z-40`}>
       <div className="container mx-auto">
         <div className="flex items-center justify-between">
-          <NavLink to="/dashboard" className="text-xl font-serif text-gray-800 flex items-center gap-2">
+          <NavLink to="/dashboard" className={`text-xl font-serif flex items-center gap-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
             <span className="text-journal-blush">❤</span> Our Journal
           </NavLink>
 
@@ -44,21 +48,27 @@ const Navigation = () => {
             <>
               <button 
                 onClick={toggleMobileMenu}
-                className="p-2 rounded-full hover:bg-gray-100"
+                className={`p-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
 
               {mobileMenuOpen && (
-                <div className="absolute top-full left-0 w-full bg-white shadow-md py-4 px-6 flex flex-col space-y-4 z-50">
+                <div className={`absolute top-full left-0 w-full ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-md py-4 px-6 flex flex-col space-y-4 z-50`}>
                   {navItems.map(item => (
                     <NavLink
                       key={item.path}
                       to={item.path}
                       className={({ isActive }) => 
                         `flex items-center gap-3 py-2 px-3 rounded-lg transition-colors ${
-                          isActive ? 'bg-pink-50 text-journal-blush' : 'text-gray-700 hover:bg-gray-100'
+                          isActive 
+                            ? darkMode 
+                              ? 'bg-pink-900/30 text-pink-300' 
+                              : 'bg-pink-50 text-journal-blush'
+                            : darkMode
+                              ? 'text-gray-300 hover:bg-gray-700'
+                              : 'text-gray-700 hover:bg-gray-100'
                         }`
                       }
                       onClick={() => setMobileMenuOpen(false)}
@@ -73,7 +83,11 @@ const Navigation = () => {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center gap-3 py-2 px-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                    className={`flex items-center gap-3 py-2 px-3 rounded-lg ${
+                      darkMode 
+                        ? 'text-gray-300 hover:bg-gray-700' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    } transition-colors`}
                   >
                     <LogOut size={20} />
                     <span>Log Out</span>
@@ -89,7 +103,13 @@ const Navigation = () => {
                   to={item.path}
                   className={({ isActive }) => 
                     `flex items-center gap-2 py-2 px-3 rounded-lg transition-colors ${
-                      isActive ? 'bg-pink-50 text-journal-blush' : 'text-gray-700 hover:bg-gray-100'
+                      isActive 
+                        ? darkMode 
+                          ? 'bg-pink-900/30 text-pink-300' 
+                          : 'bg-pink-50 text-journal-blush'
+                        : darkMode
+                          ? 'text-gray-300 hover:bg-gray-700'
+                          : 'text-gray-700 hover:bg-gray-100'
                     }`
                   }
                 >
@@ -100,7 +120,11 @@ const Navigation = () => {
               
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 py-2 px-3 ml-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                className={`flex items-center gap-2 py-2 px-3 ml-2 rounded-lg ${
+                  darkMode 
+                    ? 'text-gray-300 hover:bg-gray-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                } transition-colors`}
               >
                 <LogOut size={20} />
                 <span>Log Out</span>

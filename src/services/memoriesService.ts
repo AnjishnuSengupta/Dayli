@@ -1,4 +1,3 @@
-
 import { db } from "../lib/firebase";
 import { 
   collection, 
@@ -13,7 +12,8 @@ import {
   doc,
   deleteDoc
 } from "firebase/firestore";
-import { uploadFile, deleteFile } from "../lib/minio";
+// Import the browser-compatible storage implementation
+import { uploadFile, deleteFile } from "../lib/storage-browser";
 
 export interface Memory {
   id?: string;

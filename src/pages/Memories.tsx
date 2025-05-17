@@ -4,7 +4,7 @@ import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
 import FloatingHearts from '../components/ui/FloatingHearts';
 import MemoryGallery from '../components/ui/MemoryGallery';
-import { Camera, Plus, Bookmark, Heart, Loader2, Trash2, Grid, List, Filter } from 'lucide-react';
+import { Camera, Plus, Bookmark, Heart, Loader2, Trash2, Grid, List, Filter, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveMemory, getMemories, toggleFavorite, deleteMemory, Memory } from '@/services/memoriesService';

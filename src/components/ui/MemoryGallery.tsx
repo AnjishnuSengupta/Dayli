@@ -36,7 +36,8 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
       <>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Column 1 */}
-          <div className="flex flex-col gap-4 stagger-animate">
+          <div className="flex flex-col gap-4 stagger-animate slide-up"
+               style={{ animationDuration: '0.5s' }}>
             {column1.map((memory, index) => (
               <MemoryCard
                 key={memory.id}
@@ -45,6 +46,7 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
                 onFavorite={onFavorite}
                 onDelete={onDelete}
                 openLightbox={openLightbox}
+                delay={index * 100}
               />
             ))}
           </div>
@@ -114,12 +116,14 @@ const MemoryGallery: React.FC<MemoryGalleryProps> = ({
   );
 };
 
+// Update the MemoryCard component to use our new animations
 interface MemoryCardProps {
   memory: Memory;
   index: number;
   onFavorite: (id: string, isFavorite: boolean) => void;
   onDelete: (id: string, imageUrl: string) => void;
   openLightbox: (index: number) => void;
+  delay?: number; // Add delay prop for staggered animations
 }
 
 const MemoryCard: React.FC<MemoryCardProps> = ({
@@ -127,10 +131,24 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
   index,
   onFavorite,
   onDelete,
-  openLightbox
+  openLightbox,
+  delay = 0
 }) => {
+  const animationStyle = delay ? { 
+    animationDelay: `${delay}ms`, 
+    opacity: 0, 
+    animationFillMode: 'forwards' 
+  } : {};
+
   return (
-    <JournalCard key={memory.id} className="p-4 overflow-hidden group" animated animationType="float" hover="lift">
+    <JournalCard 
+      key={memory.id} 
+      className="p-4 overflow-hidden group" 
+      animated 
+      animationType="zoom" 
+      hover="lift"
+      style={animationStyle}
+    >
       <div className="relative rounded-lg overflow-hidden mb-4">
         <img 
           src={memory.imageUrl} 
@@ -140,9 +158,9 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        <div className="absolute top-3 right-3 flex gap-2">
+        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 duration-300">
           <button 
-            className="p-2 bg-white/80 rounded-full hover:bg-white transition-all"
+            className="p-2 bg-white/80 rounded-full hover:bg-white transition-all hover-scale"
             onClick={() => onFavorite(memory.id!, !!memory.isFavorite)}
           >
             <Bookmark 
@@ -152,7 +170,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
           </button>
           
           <button 
-            className="p-2 bg-white/80 rounded-full hover:bg-white transition-all"
+            className="p-2 bg-white/80 rounded-full hover:bg-white transition-all hover-scale"
             onClick={() => openLightbox(index)}
           >
             <Maximize size={16} />
@@ -164,15 +182,15 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
       <p className="text-sm text-gray-500 mb-2">{memory.date}</p>
       <p className="text-sm italic">{memory.caption}</p>
       
-      <div className="mt-4 flex justify-between">
+      <div className="mt-4 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <button 
-          className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 transition-colors"
+          className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 transition-colors hover-scale"
           onClick={() => onDelete(memory.id!, memory.imageUrl)}
         >
           <Trash2 size={16} /> Delete
         </button>
         <button 
-          className="flex items-center gap-1 text-sm text-journal-blush hover:text-pink-600 transition-colors"
+          className="flex items-center gap-1 text-sm text-journal-blush hover:text-pink-600 transition-colors hover-scale"
           onClick={() => onFavorite(memory.id!, !!memory.isFavorite)}
         >
           <Heart size={16} fill={memory.isFavorite ? "#FFDEE2" : "transparent"} /> 

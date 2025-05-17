@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { uploadFile, deleteFile } from '../lib/minio';
+import { uploadFile, deleteFile } from '../lib/storage-browser';
 
-// Custom hook for handling MinIO storage operations
+// Custom hook for handling storage operations
 export const useMinioStorage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<Error | null>(null);
 
-  // Upload a file to MinIO and get back the URL
+  // Upload a file to storage and get back the URL
   const upload = async (file: File, pathPrefix?: string): Promise<string> => {
     setIsUploading(true);
     setUploadProgress(0);
@@ -15,7 +15,7 @@ export const useMinioStorage = () => {
     
     try {
       // Simulate progress - in a real implementation,
-      // you could use the MinIO client's progress events
+      // you could use the axios upload progress events
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           const nextProgress = prev + Math.random() * 20;

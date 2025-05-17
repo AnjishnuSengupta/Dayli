@@ -1,73 +1,46 @@
-# Welcome to your Lovable project
+# Dayli - Shared Journal for Couples
 
-## Project info
+<p align="center">
+    <em>Capture your journey together, one day at a time ❤️</em>
+</p>
 
-**URL**: https://lovable.dev/projects/1a37c9c8-1c75-4160-968a-51fca54e4938
+## About Dayli
 
-## How can I edit this code?
+Dayli is a shared journaling platform designed specifically for couples who want to document their journey together. Whether you're miles apart or sharing the same space, Dayli provides a private, intimate space to record your daily experiences, thoughts, and memories.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- **Shared Entries** - Create journal entries visible to both partners
+- **Private Moments** - Option to keep certain entries just for yourself
+- **Media Support** - Attach photos, audio clips, and more to preserve memories
+- **Milestone Tracking** - Mark special days and anniversaries
+- **Daily Prompts** - Inspiration for when you're not sure what to write
+- **Notification Reminders** - Gentle nudges to maintain your journaling habit
+- **Timeline View** - Browse through your relationship history
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1a37c9c8-1c75-4160-968a-51fca54e4938) and start prompting.
+## Why Dayli?
 
-Changes made via Lovable will be committed automatically to this repo.
+Every relationship has its unique story. Dayli helps you document that story together, creating a beautiful archive of your shared experiences that you can look back on for years to come.
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Create your account
+2. Invite your partner
+3. Start journaling your daily experiences
+4. Share thoughts, photos, and special moments
+5. Build your relationship timeline together
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Implementation
 
-Follow these steps:
+Dayli is built with privacy and ease of use in mind. The platform uses secure encryption to keep your intimate moments private, while offering an intuitive interface that makes daily journaling a joy rather than a chore.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Coming Soon
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- Mobile apps for iOS and Android
+- End-to-end encryption
+- Journal export options
+- Custom themes
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/1a37c9c8-1c75-4160-968a-51fca54e4938) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Start documenting your journey together today with Dayli!

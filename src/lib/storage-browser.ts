@@ -4,6 +4,7 @@
  * without requiring the MinIO client library which is not compatible with browsers.
  */
 import axios from 'axios';
+import * as CryptoJS from 'crypto-js';
 
 // Storage configuration
 const S3_ENDPOINT = import.meta.env.VITE_MINIO_ENDPOINT || 'play.min.io';
@@ -13,9 +14,75 @@ const PORT = import.meta.env.VITE_MINIO_PORT || '9000';
 const BUCKET_NAME = import.meta.env.VITE_MINIO_BUCKET_NAME || 'dayli-data';
 const ACCESS_KEY = import.meta.env.VITE_MINIO_ACCESS_KEY || 'anjishnu';
 const SECRET_KEY = import.meta.env.VITE_MINIO_SECRET_KEY || 'Anjishnu0035';
+const REGION = 'us-east-1'; // Default region for MinIO
 
 // The full endpoint URL
 const ENDPOINT_URL = `${PROTOCOL}://${S3_ENDPOINT}:${PORT}`;
+
+/**
+ * Generate AWS Signature V4 for S3/MinIO authentication
+ */
+function generateAWSSignatureV4(method: string, path: string, queryParams: Record<string, string>, 
+                               headers: Record<string, string>, payload: any, service = 's3') {
+  // Step 1: Create canonical request
+  const requestDate = new Date();
+  const amzDate = requestDate.toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.substring(0, 8);
+  
+  // Add required headers
+  headers['x-amz-date'] = amzDate;
+  headers['x-amz-content-sha256'] = CryptoJS.SHA256(payload || '').toString();
+  
+  // Create canonical query string
+  const canonicalQueryString = Object.keys(queryParams)
+    .sort()
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
+    .join('&');
+  
+  // Create canonical headers
+  const canonicalHeaders = Object.keys(headers)
+    .sort()
+    .map(key => `${key.toLowerCase()}:${headers[key]}`)
+    .join('\n') + '\n';
+  
+  // Create signed headers
+  const signedHeaders = Object.keys(headers)
+    .sort()
+    .map(key => key.toLowerCase())
+    .join(';');
+  
+  // Create canonical request
+  const canonicalRequest = [
+    method,
+    path,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    headers['x-amz-content-sha256']
+  ].join('\n');
+  
+  // Step 2: Create string to sign
+  const algorithm = 'AWS4-HMAC-SHA256';
+  const scope = `${dateStamp}/${REGION}/${service}/aws4_request`;
+  const stringToSign = [
+    algorithm,
+    amzDate,
+    scope,
+    CryptoJS.SHA256(canonicalRequest).toString()
+  ].join('\n');
+  
+  // Step 3: Calculate signature
+  const kDate = CryptoJS.HmacSHA256(dateStamp, 'AWS4' + SECRET_KEY);
+  const kRegion = CryptoJS.HmacSHA256(REGION, kDate);
+  const kService = CryptoJS.HmacSHA256(service, kRegion);
+  const kSigning = CryptoJS.HmacSHA256('aws4_request', kService);
+  const signature = CryptoJS.HmacSHA256(stringToSign, kSigning).toString();
+  
+  // Step 4: Create authorization header
+  const authorizationHeader = `${algorithm} Credential=${ACCESS_KEY}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  
+  return authorizationHeader;
+}
 
 /**
  * Uploads a file to MinIO storage
@@ -40,23 +107,33 @@ export const uploadFile = async (file: File, pathPrefix: string = 'memories'): P
     
     const sanitizedName = file.name.replace(/\s+/g, '_');
     const fileName = `${pathPrefix}/${Date.now()}_${sanitizedName}`;
-    const objectKey = encodeURIComponent(fileName);
+    const objectKey = fileName;
+    const encodedObjectKey = encodeURIComponent(objectKey);
     
     console.log('Uploading file to MinIO:', {
       endpoint: ENDPOINT_URL,
       bucket: BUCKET_NAME,
-      fileName: objectKey
+      fileName: encodedObjectKey
     });
     
-    // Upload to MinIO with proper authentication and headers
-    const response = await axios.put(`${ENDPOINT_URL}/${BUCKET_NAME}/${objectKey}`, file, {
+    // Generate AWS Signature v4 authentication
+    const host = `${S3_ENDPOINT}:${PORT}`;
+    const path = `/${BUCKET_NAME}/${objectKey}`;
+    const requestHeaders = {
+      'Host': host,
+      'Content-Type': file.type,
+      'x-amz-acl': 'public-read',
+      'x-amz-meta-original-filename': sanitizedName
+    };
+    
+    const authorizationHeader = generateAWSSignatureV4('PUT', path, {}, requestHeaders, file);
+    
+    // Upload to MinIO with AWS Signature v4 authentication
+    const response = await axios.put(`${ENDPOINT_URL}/${BUCKET_NAME}/${encodedObjectKey}`, file, {
       headers: { 
-        'Content-Type': file.type,
-        'Cache-Control': 'max-age=31536000',
-        'x-amz-acl': 'public-read',
-        'Authorization': 'Basic ' + btoa(`${ACCESS_KEY}:${SECRET_KEY}`),
-        // Add these headers to fix 400 errors with MinIO
-        'x-amz-meta-original-filename': sanitizedName
+        ...requestHeaders,
+        'Authorization': authorizationHeader,
+        'Cache-Control': 'max-age=31536000'
       },
       // Add timeout and ensure we get proper error information
       timeout: 30000
@@ -65,7 +142,7 @@ export const uploadFile = async (file: File, pathPrefix: string = 'memories'): P
     // If response is successful, return the URL to the file
     if (response.status >= 200 && response.status < 300) {
       // Generate URL to the uploaded file
-      const fileUrl = `${ENDPOINT_URL}/${BUCKET_NAME}/${objectKey}`;
+      const fileUrl = `${ENDPOINT_URL}/${BUCKET_NAME}/${encodedObjectKey}`;
       console.log('File uploaded successfully:', fileUrl);
       return fileUrl;
     } else {
@@ -123,10 +200,20 @@ export const deleteFile = async (fileUrl: string): Promise<void> => {
       objectKey: objectKey
     });
     
+    // Generate AWS Signature v4 authentication
+    const host = `${S3_ENDPOINT}:${PORT}`;
+    const path = `/${BUCKET_NAME}/${objectKey}`;
+    const requestHeaders = {
+      'Host': host
+    };
+    
+    const authorizationHeader = generateAWSSignatureV4('DELETE', path, {}, requestHeaders, '');
+    
     // Delete the file from storage
     await axios.delete(`${ENDPOINT_URL}/${BUCKET_NAME}/${objectKey}`, {
       headers: {
-        'Authorization': 'Basic ' + btoa(`${ACCESS_KEY}:${SECRET_KEY}`)
+        ...requestHeaders,
+        'Authorization': authorizationHeader
       }
     });
     

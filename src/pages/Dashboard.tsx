@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { JournalEntry, getJournalEntries } from '@/services/journalService';
 import { Memory, getMemories } from '@/services/memoriesService';
 import { useToast } from '@/components/ui/use-toast';
+import { formatRelationshipDuration, getRelationshipDurationText } from '@/utils/dateUtils';
 
 // Extend the JournalEntry interface to include excerpt
 interface EnhancedJournalEntry extends JournalEntry {
@@ -24,6 +25,8 @@ const Dashboard = () => {
   const [mood, setMood] = useState('happy');
   const [showHearts, setShowHearts] = useState(false);
   const [relationshipDays, setRelationshipDays] = useState<number | null>(null);
+  const [relationshipStartDate, setRelationshipStartDate] = useState<Date | null>(null);
+  const [relationshipDuration, setRelationshipDuration] = useState<string>('');
   const [recentEntries, setRecentEntries] = useState<EnhancedJournalEntry[]>([]);
   const [recentMemories, setRecentMemories] = useState<Memory[]>([]);
   const [isLoadingEntries, setIsLoadingEntries] = useState(true);
@@ -55,7 +58,11 @@ const Dashboard = () => {
               const today = new Date();
               const diffTime = Math.abs(today.getTime() - startDate.getTime());
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              
+              // Set both the old format and new format
               setRelationshipDays(diffDays);
+              setRelationshipStartDate(startDate);
+              setRelationshipDuration(formatRelationshipDuration(startDate, today));
             }
           }
         } catch (error) {
@@ -164,8 +171,13 @@ const Dashboard = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
         >
-          {relationshipDays !== null 
-            ? `You've been together for ${relationshipDays} days 💕` 
+          {relationshipDuration && relationshipStartDate
+            ? (
+                <span className="flex flex-col items-center gap-1">
+                  <span className="text-2xl font-bold text-journal-blush">{relationshipDuration}</span>
+                  <span className="text-sm">{getRelationshipDurationText(relationshipStartDate)} together 💕</span>
+                </span>
+              )
             : 'Set your relationship date in settings 💕'}
         </motion.p>
       </motion.section>

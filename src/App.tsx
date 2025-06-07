@@ -24,9 +24,11 @@ const queryClient = new QueryClient();
 
 // Improved private route component with error boundary
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+  // Always call hooks at the top level
+  const { currentUser } = useAuth();
+  
   try {
-    // First check Firebase auth context
-    const { currentUser } = useAuth();
+    // Check Firebase auth context
     if (currentUser) return <ErrorBoundary>{children}</ErrorBoundary>;
     
     // Fallback to secure session storage if context is unavailable

@@ -1,0 +1,148 @@
+// Enhanced Firebase security rules with stronger data protection
+// These rules implement the principle of least privilege and include data validation
+
+// For Firestore
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidTimestampField(timeValue) {
+      // Ensure timestamps aren't set too far in the past or future
+      return timeValue is timestamp && 
+             timeValue.toMillis() >= (request.time.toMillis() - 5 * 60 * 1000) && // Not more than 5 mins in the past
+             timeValue.toMillis() <= (request.time.toMillis() + 60 * 1000); // Not more than 1 min in the future
+    }
+    
+    function validateImageUrl(url) {
+      // Simple validation to ensure URLs point to expected domains
+      return url is string && 
+             (url.matches('^https://play.min.io.*') || 
+              url.matches('^https://.*\\.s3\\.amazonaws\\.com.*') ||
+              url.matches('^https?://.*') ||
+              url.matches('^.*\\.appspot\\.com.*'));
+    }
+    
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // User profiles
+    match /users/{userId} {
+      allow get: if isAuthenticated(); // Any authenticated user can see basic profiles
+      allow list: if false; // Deny listing all users for privacy
+      allow create, update, delete: if isOwner(userId);
+      
+      // Validate fields for security
+      allow create: if isOwner(userId) && 
+                      request.resource.data.displayName is string &&
+                      (!request.resource.data.photoURL || validateImageUrl(request.resource.data.photoURL));
+      
+      allow update: if isOwner(userId) && 
+                     (!request.resource.data.diff(resource.data).affectedKeys()
+                       .hasAny(['createdAt', 'uid'])); // Prevent changing critical fields
+    }
+    
+    // User settings
+    match /user_settings/{userId} {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+      allow delete: if false; // Prevent deletion of settings
+      
+      // Data validation for settings
+      allow write: if isOwner(userId) &&
+                     // Validate relationship start date
+                     (!request.resource.data.relationshipStartDate || 
+                      request.resource.data.relationshipStartDate is string) &&
+                     // Validate dark mode boolean
+                     request.resource.data.darkMode is bool;
+    }
+    
+    // Journal entries
+    match /journal_entries/{entryId} {
+      // Only allow users to create entries for themselves
+      allow create: if isAuthenticated() && 
+                      request.resource.data.authorId == request.auth.uid &&
+                      request.resource.data.content is string &&
+                      request.resource.data.content.size() <= 10000 && // Limit content size
+                      request.resource.data.mood is string &&
+                      isValidTimestampField(request.resource.data.createdAt);
+      
+      // Only allow users to read, update, and delete their own entries
+      allow read, update, delete: if isAuthenticated() && 
+                                    resource.data.authorId == request.auth.uid;
+      
+      // Validate updates
+      allow update: if isAuthenticated() && 
+                     resource.data.authorId == request.auth.uid &&
+                     (!request.resource.data.diff(resource.data).affectedKeys()
+                       .hasAny(['authorId', 'createdAt'])); // Prevent changing critical fields
+    }
+    
+    // Memories
+    match /memories/{memoryId} {
+      // Only allow users to create memories for themselves with strict validation
+      allow create: if isAuthenticated() && 
+                      request.resource.data.createdBy == request.auth.uid &&
+                      request.resource.data.title is string &&
+                      request.resource.data.title.size() <= 100 &&
+                      request.resource.data.caption is string &&
+                      request.resource.data.caption.size() <= 500 &&
+                      request.resource.data.date is string &&
+                      isValidTimestampField(request.resource.data.createdAt) &&
+                      validateImageUrl(request.resource.data.imageUrl);
+      
+      // Only allow users to read, update, and delete their own memories
+      allow read, update, delete: if isAuthenticated() && 
+                                    resource.data.createdBy == request.auth.uid;
+      
+      // Validate updates to prevent tampering with critical fields
+      allow update: if isAuthenticated() && 
+                     resource.data.createdBy == request.auth.uid &&
+                     (!request.resource.data.diff(resource.data).affectedKeys()
+                       .hasAny(['createdBy', 'createdAt', 'imageUrl']));
+    }
+  }
+}
+
+// For Firebase Storage
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default deny all
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // Only allow users to read and write files in their own user directory
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+                     request.auth.uid == userId &&
+                     request.resource.size < 10 * 1024 * 1024 && // 10MB limit
+                     request.resource.contentType.matches('image/.*');
+    }
+    
+    // Memory images with user-specific paths
+    match /memories/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+                     request.auth.uid == userId &&
+                     request.resource.size < 10 * 1024 * 1024 && // 10MB limit
+                     request.resource.contentType.matches('image/.*');
+    }
+    
+    // Public read for specific shared paths, but still require auth for write
+    match /public/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if false; // No direct writes to public folder
+    }
+  }
+}

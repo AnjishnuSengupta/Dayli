@@ -1,46 +1,160 @@
-# Dayli - Shared Journal for Couples
+# Dayli 💕
 
-<p align="center">
-    <em>Capture your journey together, one day at a time ❤️</em>
-</p>
+A beautiful and secure shared journal application for couples to document their journey together.
 
-## About Dayli
+![Dayli Logo](public/Dayli.png)
 
-Dayli is a shared journaling platform designed specifically for couples who want to document their journey together. Whether you're miles apart or sharing the same space, Dayli provides a private, intimate space to record your daily experiences, thoughts, and memories.
+## ✨ Features
 
-## Features
+- **📝 Shared Journal**: Write and share daily entries with your partner
+- **📸 Memory Collection**: Upload and organize your favorite photos and memories
+- **🎯 Relationship Milestones**: Track important dates and achievements
+- **🔐 Secure Storage**: All data is encrypted and securely stored
+- **⚡ Real-time Sync**: Changes appear instantly for both partners
+- **⏰ Relationship Duration**: Track your time together in YY:MM:DD format
+- **🎨 Beautiful UI**: Modern, responsive design with smooth animations
 
-- **Shared Entries** - Create journal entries visible to both partners
-- **Private Moments** - Option to keep certain entries just for yourself
-- **Media Support** - Attach photos, audio clips, and more to preserve memories
-- **Milestone Tracking** - Mark special days and anniversaries
-- **Daily Prompts** - Inspiration for when you're not sure what to write
-- **Notification Reminders** - Gentle nudges to maintain your journaling habit
-- **Timeline View** - Browse through your relationship history
+## 🚀 Quick Start
 
-## Why Dayli?
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Dayli
+   ```
 
-Every relationship has its unique story. Dayli helps you document that story together, creating a beautiful archive of your shared experiences that you can look back on for years to come.
+2. **Run the setup script**
+   ```bash
+   chmod +x setup-complete.sh
+   ./setup-complete.sh
+   ```
 
-## Getting Started
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-1. Create your account
-2. Invite your partner
-3. Start journaling your daily experiences
-4. Share thoughts, photos, and special moments
-5. Build your relationship timeline together
+4. **Open in browser**
+   Navigate to `http://localhost:8080`
 
-## Implementation
+## 📚 Documentation
 
-Dayli is built with privacy and ease of use in mind. The platform uses secure encryption to keep your intimate moments private, while offering an intuitive interface that makes daily journaling a joy rather than a chore.
+- **[Setup Guide](docs/SETUP.md)** - Detailed setup instructions
+- **[Security Guide](docs/SECURITY.md)** - Security implementation details
+- **[API Documentation](docs/API.md)** - Server endpoints and services
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment guide
+- **[Contributing](docs/CONTRIBUTING.md)** - Development guidelines
 
-## Coming Soon
+## 🛠️ Tech Stack
 
-- Mobile apps for iOS and Android
-- End-to-end encryption
-- Journal export options
-- Custom themes
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS
+- **Backend**: Firebase (Firestore, Authentication, Storage)
+- **File Storage**: MinIO (self-hosted S3-compatible storage)
+- **State Management**: React Query (TanStack Query)
+- **UI Components**: Radix UI + shadcn/ui
+- **Styling**: Tailwind CSS with custom theme
+
+## 📱 Pages
+
+- **Dashboard**: Overview of your relationship journey
+- **Journal**: Daily entries with mood tracking
+- **Memories**: Photo gallery with metadata
+- **Milestones**: Important relationship events
+- **Settings**: User preferences and relationship setup
+
+## 🔐 Security Features
+
+- **Firebase Security Rules** for data protection
+- **File type validation** for uploads
+- **Encrypted data storage**
+- **Secure authentication flow**
+- **Environment variable protection**
+- **Partner-only access controls**
+
+## 🎨 Design System
+
+Dayli uses a custom design system with:
+- **Warm color palette** (blush, cream, coral tones)
+- **Smooth animations** with Framer Motion
+- **Responsive design** for all devices
+- **Accessibility** features built-in
+
+## 📁 Project Structure
+
+```
+Dayli/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/         # Main application pages
+│   ├── services/      # API and external service integrations
+│   ├── utils/         # Utility functions and helpers
+│   └── lib/           # Configuration files
+├── server/            # Server-side API endpoints
+├── docs/              # Comprehensive documentation
+└── public/            # Static assets
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run security tests
+./security-test.sh
+
+# Check for errors
+npm run type-check
+```
+
+## 🚀 Deployment
+
+Use the secure deployment script:
+
+```bash
+chmod +x secure-deploy.sh
+./secure-deploy.sh
+```
+
+See the [Deployment Guide](docs/DEPLOYMENT.md) for detailed instructions.
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our [Contributing Guide](docs/CONTRIBUTING.md) for:
+
+- Development setup
+- Code standards
+- Security guidelines
+- Pull request process
+
+## 🆘 Support
+
+- **Issues**: Report bugs on GitHub Issues
+- **Questions**: Use GitHub Discussions
+- **Security**: Contact maintainers privately for security issues
+
+## 📋 Requirements
+
+- **Node.js**: 18+ or Bun
+- **Firebase**: Project with Firestore and Authentication
+- **MinIO**: Server or S3-compatible storage
+- **Modern Browser**: Chrome, Firefox, Safari, or Edge
+
+## 🔄 Recent Updates
+
+- ✅ Enhanced Firebase security rules
+- ✅ Improved journal entry fetching
+- ✅ YY:MM:DD relationship duration format
+- ✅ Comprehensive documentation
+- ✅ Production-ready deployment scripts
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 💕 About
+
+Dayli is designed to help couples strengthen their relationship by encouraging daily reflection and shared memories. The application focuses on privacy, security, and creating a beautiful space for couples to document their journey together.
 
 ---
 
-Start documenting your journey together today with Dayli!
+**Made with 💕 for couples everywhere**

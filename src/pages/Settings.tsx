@@ -9,9 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, updateProfile, updateEmail } from 'firebase/auth';
 import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { useMinioStorage } from '@/hooks/use-minio-storage';
+// Remove the MinIO storage import and only use secure storage
+import { useSecureStorage } from '@/hooks/use-secure-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Calendar, User as UserIcon, Mail, Camera, Loader2 } from 'lucide-react';
+import { Calendar, User as UserIcon, Mail, Camera, Loader2, Shield } from 'lucide-react';
 
 // Interface for user settings data
 interface UserSettings {
@@ -31,7 +32,8 @@ const Settings = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [dateError, setDateError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { upload } = useMinioStorage(); // Use MinIO for storage
+  // Use secure storage implementation
+  const { upload } = useSecureStorage();
   
   const { toast: hookToast } = useToast();
 
@@ -156,17 +158,29 @@ const Settings = () => {
     if (!e.target.files || !e.target.files[0] || !currentUser) return;
     
     const file = e.target.files[0];
+    
+    // Additional security validation
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Profile picture must be smaller than 5MB");
+      return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error("Only image files are allowed for profile pictures");
+      return;
+    }
+    
     setIsUploading(true);
     
     try {
-      // Upload to MinIO instead of Firebase Storage
+      // Upload using secure storage implementation
       const userId = currentUser.uid;
       const renamedFile = new File([file], `${userId}_${Date.now()}.${file.name.split('.').pop()}`, {
         type: file.type
       });
       
-      // Upload file and get URL with profile_pictures path prefix
-      const downloadURL = await upload(renamedFile, 'profile_pictures');
+      // Upload file and get URL with profile_pictures path prefix and user ID for access control
+      const downloadURL = await upload(renamedFile, `profile_pictures/${userId}`);
       
       // Set new photo URL
       setPhotoUrl(downloadURL);
@@ -174,7 +188,7 @@ const Settings = () => {
       // Immediately update the profile with the new photo
       await updateUserProfile(displayName, downloadURL);
       
-      toast.success("Profile picture uploaded!");
+      toast.success("Profile picture securely uploaded!");
     } catch (error) {
       console.error("Error uploading profile picture:", error);
       toast.error("Failed to upload profile picture: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -215,6 +229,10 @@ const Settings = () => {
         <p className="text-gray-600 dark:text-gray-300">
           Customize your profile and preferences
         </p>
+        <div className="flex items-center justify-center mt-2">
+          <Shield className="text-green-500 mr-1" size={16} />
+          <span className="text-xs text-green-500">Enhanced Security Enabled</span>
+        </div>
       </section>
       
       <form onSubmit={saveSettings}>

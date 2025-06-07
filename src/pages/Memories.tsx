@@ -4,13 +4,15 @@ import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
 import FloatingHearts from '../components/ui/FloatingHearts';
 import MemoryGallery from '../components/ui/MemoryGallery';
-import { Camera, Plus, Bookmark, Heart, Loader2, Trash2, Grid, List, Filter, Search } from 'lucide-react';
+import { Camera, Plus, Bookmark, Heart, Loader2, Trash2, Grid, List, Filter, Search, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveMemory, getMemories, toggleFavorite, deleteMemory, Memory } from '@/services/memoriesService';
+import { Memory } from '@/services/memoriesService';
+// Import secure memory services
+import { saveMemory, getMemories, toggleFavorite, deleteMemory } from '@/services/memoriesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useMinioStorage } from '@/hooks/use-minio-storage';
+import { useSecureStorage } from '@/hooks/use-secure-storage';
 
 const Memories = () => {
   const [showHearts, setShowHearts] = useState(false);
@@ -27,7 +29,7 @@ const Memories = () => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
-  const { upload } = useMinioStorage(); // Use the MinIO hook
+  const { upload } = useSecureStorage(); // Use the secure storage hook
   
   // Fetch memories
   const { data: memories, isLoading } = useQuery({
@@ -62,15 +64,18 @@ const Memories = () => {
 
   // Save memory mutation
   const saveMutation = useMutation({
-    mutationFn: ({ memory, file }: { memory: any, file: File }) => 
-      saveMemory(memory, file),
+    mutationFn: ({ memory, file }: { memory: any, file: File }) => {
+      if (!currentUser) throw new Error("Authentication required");
+      // Pass the userId to the secure saveMemory function
+      return saveMemory(memory, file, currentUser.uid);
+    },
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['memories'] });
       
       toast({
         title: "Memory saved",
-        description: "Your special moment has been preserved",
+        description: "Your special moment has been preserved securely",
       });
       
       // Reset form and close dialog
@@ -88,8 +93,10 @@ const Memories = () => {
 
   // Toggle favorite mutation
   const favoriteMutation = useMutation({
-    mutationFn: ({ id, isFavorite }: { id: string, isFavorite: boolean }) => 
-      toggleFavorite(id, isFavorite),
+    mutationFn: ({ id, isFavorite }: { id: string, isFavorite: boolean }) => {
+      if (!currentUser) throw new Error("Authentication required");
+      return toggleFavorite(id, isFavorite, currentUser.uid);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memories'] });
       
@@ -105,14 +112,16 @@ const Memories = () => {
 
   // Delete memory mutation
   const deleteMutation = useMutation({
-    mutationFn: ({ id, imageUrl }: { id: string, imageUrl: string }) => 
-      deleteMemory(id, imageUrl),
+    mutationFn: ({ id, imageUrl }: { id: string, imageUrl: string }) => {
+      if (!currentUser) throw new Error("Authentication required");
+      return deleteMemory(id, imageUrl, currentUser.uid);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memories'] });
       
       toast({
         title: "Memory deleted",
-        description: "Your memory has been removed",
+        description: "Your memory has been securely removed",
       });
     },
     onError: (error) => {
@@ -148,11 +157,30 @@ const Memories = () => {
       return;
     }
     
+    // Additional client-side validation
+    if (selectedImage.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 10MB",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!selectedImage.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a valid image file",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Show loading toast for large images
     if (selectedImage.size > 2 * 1024 * 1024) {
       toast({
-        title: "Uploading image",
-        description: "Large images may take a moment to upload",
+        title: "Uploading image securely",
+        description: "Large images may take a moment to upload and verify",
       });
     }
     
@@ -161,6 +189,8 @@ const Memories = () => {
       date,
       caption,
       createdBy: currentUser.uid,
+      // Additional security metadata
+      timestamp: Date.now(),
     };
     
     saveMutation.mutate({ memory, file: selectedImage });
@@ -168,6 +198,15 @@ const Memories = () => {
   
   const handleDeleteMemory = (id: string, imageUrl: string) => {
     if (window.confirm("Are you sure you want to delete this memory? This action cannot be undone.")) {
+      if (!currentUser) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to delete memories",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       deleteMutation.mutate({ id, imageUrl });
     }
   };

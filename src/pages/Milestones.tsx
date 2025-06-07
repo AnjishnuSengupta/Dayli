@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useAuth } from '@/contexts/AuthContext';
 import { addMilestone, getMilestones, generateAutomaticMilestones } from '@/services/milestonesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { getTotalDays } from '@/utils/dateUtils';
 
 const Milestones = () => {
   const [showHearts, setShowHearts] = useState(false);
@@ -16,15 +19,38 @@ const Milestones = () => {
   const [newMilestoneOpen, setNewMilestoneOpen] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
   const [newMilestoneDate, setNewMilestoneDate] = useState('');
+  const [relationshipStartDate, setRelationshipStartDate] = useState<Date | null>(null);
+  const [daysSince, setDaysSince] = useState(0);
   
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
   
-  // Sample relationship start date - in a real app, this would come from user settings
-  const relationshipStartDate = new Date(2025, 7, 29); // August 29, 2025
-  const today = new Date();
-  const daysSince = Math.floor((today.getTime() - relationshipStartDate.getTime()) / (1000 * 60 * 60 * 24));
+  // Fetch relationship start date from user settings
+  useEffect(() => {
+    const fetchRelationshipStartDate = async () => {
+      if (currentUser?.uid) {
+        try {
+          const userSettingsRef = doc(db, "user_settings", currentUser.uid);
+          const docSnap = await getDoc(userSettingsRef);
+          
+          if (docSnap.exists() && docSnap.data().relationshipStartDate) {
+            const startDateStr = docSnap.data().relationshipStartDate;
+            const startDate = new Date(startDateStr);
+            
+            if (!isNaN(startDate.getTime())) {
+              setRelationshipStartDate(startDate);
+              setDaysSince(getTotalDays(startDate));
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching relationship start date:", error);
+        }
+      }
+    };
+
+    fetchRelationshipStartDate();
+  }, [currentUser]);
   
   // Fetch milestones
   const { data: milestones, isLoading } = useQuery({

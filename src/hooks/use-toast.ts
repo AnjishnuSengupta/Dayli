@@ -96,12 +96,13 @@ const addToRemoveQueue = (toastId: string, options: ToastOptions) => {
 
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD_TOAST":
+    case "ADD_TOAST": {
       const toastLimit = state.options.limit || DEFAULT_TOAST_LIMIT;
       return {
         ...state,
         toasts: [action.toast, ...state.toasts].slice(0, toastLimit),
       }
+    }
 
     case "UPDATE_TOAST":
       return {

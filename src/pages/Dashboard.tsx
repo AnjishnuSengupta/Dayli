@@ -111,7 +111,7 @@ const Dashboard = () => {
     };
     
     fetchRecentEntries();
-  }, [currentUser]);
+  }, [currentUser, toast]);
   
   // Fetch recent memories
   useEffect(() => {
@@ -140,7 +140,7 @@ const Dashboard = () => {
     };
     
     fetchRecentMemories();
-  }, [currentUser]);
+  }, [currentUser, toast]);
   
   const handleHeartsClick = () => {
     setShowHearts(true);
@@ -174,8 +174,7 @@ const Dashboard = () => {
           {relationshipDuration && relationshipStartDate
             ? (
                 <span className="flex flex-col items-center gap-1">
-                  <span className="text-2xl font-bold text-journal-blush">{relationshipDuration}</span>
-                  <span className="text-sm">{getRelationshipDurationText(relationshipStartDate)} together 💕</span>
+                  <span className="text-lg">{getRelationshipDurationText(relationshipStartDate)} together 💕</span>
                 </span>
               )
             : 'Set your relationship date in settings 💕'}

@@ -98,7 +98,7 @@ const Milestones = () => {
     if (currentUser) {
       generateMilestonesMutation.mutate();
     }
-  }, [currentUser]);
+  }, [currentUser, generateMilestonesMutation]);
 
   const addCustomMilestone = () => {
     if (!newMilestoneTitle.trim() || !newMilestoneDate.trim() || !currentUser) {

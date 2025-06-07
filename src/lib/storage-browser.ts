@@ -23,7 +23,7 @@ const ENDPOINT_URL = `${PROTOCOL}://${S3_ENDPOINT}:${PORT}`;
  * Generate AWS Signature V4 for S3/MinIO authentication
  */
 function generateAWSSignatureV4(method: string, path: string, queryParams: Record<string, string>, 
-                               headers: Record<string, string>, payload: any, service = 's3') {
+                               headers: Record<string, string>, payload: File | string | null, service = 's3') {
   // Step 1: Create canonical request
   const requestDate = new Date();
   const amzDate = requestDate.toISOString().replace(/[:-]|\.\d{3}/g, '');
@@ -31,7 +31,16 @@ function generateAWSSignatureV4(method: string, path: string, queryParams: Recor
   
   // Add required headers
   headers['x-amz-date'] = amzDate;
-  headers['x-amz-content-sha256'] = CryptoJS.SHA256(payload || '').toString();
+  
+  // Handle different payload types for hashing
+  let payloadForHash = '';
+  if (payload instanceof File) {
+    // For file uploads, we use UNSIGNED-PAYLOAD for simplicity
+    headers['x-amz-content-sha256'] = 'UNSIGNED-PAYLOAD';
+  } else {
+    payloadForHash = payload || '';
+    headers['x-amz-content-sha256'] = CryptoJS.SHA256(payloadForHash).toString();
+  }
   
   // Create canonical query string
   const canonicalQueryString = Object.keys(queryParams)

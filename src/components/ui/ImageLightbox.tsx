@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -27,17 +27,17 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
     }
   }, [currentIndex, isOpen]);
 
-  const handlePrevious = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePrevious = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
     setIsLoading(true);
-  };
+  }, [images.length]);
 
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleNext = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
     setIsLoading(true);
-  };
+  }, [images.length]);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -69,7 +69,7 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, images.length]);
+  }, [isOpen, onClose, images.length, handleNext, handlePrevious]);
 
   if (!isOpen) return null;
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import JournalCard from '../components/ui/JournalCard';
@@ -13,6 +12,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loading, LoadingButton } from '@/components/ui/loading';
 import { Skeleton } from '@/components/ui/skeleton';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const Journal = () => {
   const [entry, setEntry] = useState('');
@@ -31,20 +32,31 @@ const Journal = () => {
   });
 
   // Fetch journal entries with error handling
-  const { data: journalEntries, isLoading, error: journalError } = useQuery({
+  const { data: journalEntries, isLoading, error: journalError, refetch } = useQuery({
     queryKey: ['journal-entries', currentUser?.uid],
     queryFn: async () => {
       if (!currentUser) throw new Error("Authentication required");
+      console.log("🔄 Fetching journal entries for user:", currentUser.uid);
       try {
-        return await getJournalEntries(currentUser.uid);
+        const entries = await getJournalEntries(currentUser.uid);
+        console.log("📱 Journal entries fetched successfully:", entries.length, "entries");
+        return entries;
       } catch (error) {
-        console.error("Failed to fetch journal entries:", error);
+        console.error("❌ Failed to fetch journal entries:", error);
         toast.error("Couldn't load your journal entries");
         throw error;
       }
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 seconds
+    retry: 3
   });
+
+  // Basic debug useEffect to track user state
+  useEffect(() => {
+    console.log("🔍 Journal State - User:", currentUser?.uid, "Entries:", journalEntries?.length || 0);
+  }, [currentUser, journalEntries]);
 
   // Save journal entry mutation with improved error handling
   const saveMutation = useMutation({
@@ -61,6 +73,7 @@ const Journal = () => {
     onSuccess: () => {
       // Invalidate and refetch the journal entries
       queryClient.invalidateQueries({ queryKey: ['journal-entries', currentUser?.uid] });
+      refetch(); // Explicit refetch to ensure immediate update
       
       toast.success("Entry saved with love 💕");
       hookToast({
@@ -119,12 +132,14 @@ const Journal = () => {
     });
   };
 
-  const formatDate = (timestamp: any) => {
+  const formatDate = (timestamp: unknown) => {
     if (!timestamp) return 'Unknown date';
     
     try {
       // If it's a Firebase Timestamp, convert to JS Date
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const date = (timestamp as { toDate?: () => Date }).toDate ? 
+        (timestamp as { toDate: () => Date }).toDate() : 
+        new Date(timestamp as string | number | Date);
       
       return date.toLocaleDateString('en-US', {
         month: 'long',
@@ -146,16 +161,14 @@ const Journal = () => {
 
   return (
     <MainLayout>
-      {showHearts && <FloatingHearts count={7} />}
-      
-      <section className="mb-8 text-center">
+      <div className="flex items-center gap-3 mb-8">
         <h1 className="text-3xl md:text-4xl font-serif mb-2">
           Journal
         </h1>
         <p className="text-gray-600 flex items-center justify-center gap-2">
           <Calendar size={16} /> {currentDate}
         </p>
-      </section>
+      </div>
       
       <section className="mb-8">
         <JournalCard>

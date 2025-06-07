@@ -96,7 +96,7 @@ export const clearAuthState = (): void => {
 };
 
 // Convert Firebase user to storable user data
-export const createStorableUser = (user: any): StoredUserData | null => {
+export const createStorableUser = (user: { uid: string; email: string | null; displayName: string | null } | null): StoredUserData | null => {
   if (!user) return null;
   
   return {

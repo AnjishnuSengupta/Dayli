@@ -13,6 +13,7 @@ import { saveMemory, getMemories, toggleFavorite, deleteMemory } from '@/service
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useSecureStorage } from '@/hooks/use-secure-storage';
+import { Timestamp } from 'firebase/firestore';
 
 const Memories = () => {
   const [showHearts, setShowHearts] = useState(false);
@@ -64,7 +65,7 @@ const Memories = () => {
 
   // Save memory mutation
   const saveMutation = useMutation({
-    mutationFn: ({ memory, file }: { memory: any, file: File }) => {
+    mutationFn: ({ memory, file }: { memory: Memory, file: File }) => {
       if (!currentUser) throw new Error("Authentication required");
       // Pass the userId to the secure saveMemory function
       return saveMemory(memory, file, currentUser.uid);
@@ -189,6 +190,8 @@ const Memories = () => {
       date,
       caption,
       createdBy: currentUser.uid,
+      imageUrl: '', // Will be set by the saveMemory function
+      createdAt: Timestamp.now(),
       // Additional security metadata
       timestamp: Date.now(),
     };

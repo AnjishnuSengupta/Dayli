@@ -1,5 +1,6 @@
 
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
 	darkMode: ["class"],
@@ -148,9 +149,9 @@ export default {
         'pulse-gentle': 'pulse-gentle 3s ease-in-out infinite',
         'float-heart': 'float-heart 2s ease-out forwards',
         'spin-slow': 'spin-slow 20s linear infinite',
-        'fade-in': 'fade-in 0.5s ease-out'
+  			'fade-in': 'fade-in 0.5s ease-out'
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [tailwindcssAnimate],
 } satisfies Config;

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dayli - Post-Cleanup Verification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Dayli - Post-Cleanup Verification</h1>
+        <p>Testing core functionality after cleanup operation...</p>
+        
+        <div class="test-section info">
+            <h3>🔧 System Status</h3>
+            <p><strong>Frontend:</strong> <span id="frontend-status">Loading...</span></p>
+            <p><strong>API Server:</strong> <span id="api-status">Loading...</span></p>
+            <p><strong>MinIO Integration:</strong> <span id="minio-status">Loading...</span></p>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Functional Tests</h3>
+            <button onclick="testPresignedURL()">Test Presigned URL Generation</button>
+            <button onclick="testFileUpload()">Test File Upload Workflow</button>
+            <button onclick="testStorageIntegration()">Test Storage Integration</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Test results container
+        const results = document.getElementById('results');
+
+        // Add result to display
+        function addResult(test, status, message) {
+            const div = document.createElement('div');
+            div.className = `result-item ${status}`;
+            div.innerHTML = `<strong>${test}:</strong> ${message}`;
+            results.appendChild(div);
+        }
+
+        // Check system status on load
+        async function checkSystemStatus() {
+            // Check frontend (if we can run this script, frontend is working)
+            document.getElementById('frontend-status').innerHTML = '<span style="color: green;">✅ Running</span>';
+
+            // Check API server
+            try {
+                const response = await fetch('http://localhost:3001/api/presigned-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fileName: 'status-check.txt', fileType: 'text/plain' })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('api-status').innerHTML = '<span style="color: green;">✅ Running</span>';
+                    document.getElementById('minio-status').innerHTML = '<span style="color: green;">✅ Connected</span>';
+                } else {
+                    throw new Error('API not responding');
+                }
+            } catch (error) {
+                document.getElementById('api-status').innerHTML = '<span style="color: red;">❌ Error</span>';
+                document.getElementById('minio-status').innerHTML = '<span style="color: red;">❌ Error</span>';
+            }
+        }
+
+        // Test presigned URL generation
+        async function testPresignedURL() {
+            try {
+                const response = await fetch('http://localhost:3001/api/presigned-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fileName: `test-${Date.now()}.jpg`,
+                        fileType: 'image/jpeg'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.uploadUrl && data.fileUrl) {
+                    addResult('Presigned URL Generation', 'success', 'Successfully generated presigned URLs ✅');
+                } else {
+                    addResult('Presigned URL Generation', 'error', 'Invalid response format ❌');
+                }
+            } catch (error) {
+                addResult('Presigned URL Generation', 'error', `Failed: ${error.message} ❌`);
+            }
+        }
+
+        // Test file upload workflow
+        async function testFileUpload() {
+            try {
+                // Create a test file
+                const testContent = 'This is a test file for Dayli verification';
+                const blob = new Blob([testContent], { type: 'text/plain' });
+                const testFile = new File([blob], `verification-test-${Date.now()}.txt`, { type: 'text/plain' });
+
+                // Get presigned URL
+                const urlResponse = await fetch('http://localhost:3001/api/presigned-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fileName: testFile.name,
+                        fileType: testFile.type
+                    })
+                });
+
+                const urlData = await urlResponse.json();
+
+                // Upload file using presigned URL
+                const uploadResponse = await fetch(urlData.uploadUrl, {
+                    method: 'PUT',
+                    body: testFile
+                });
+
+                if (uploadResponse.ok) {
+                    addResult('File Upload Workflow', 'success', 'Successfully uploaded test file ✅');
+                } else {
+                    addResult('File Upload Workflow', 'error', 'Upload failed ❌');
+                }
+            } catch (error) {
+                addResult('File Upload Workflow', 'error', `Failed: ${error.message} ❌`);
+            }
+        }
+
+        // Test storage integration
+        async function testStorageIntegration() {
+            try {
+                // Test if we can access MinIO directly
+                const testResponse = await fetch('http://localhost:9000', { method: 'HEAD' });
+                
+                if (testResponse.status === 400) { // MinIO returns 400 for invalid requests, which means it's running
+                    addResult('Storage Integration', 'success', 'MinIO server is accessible ✅');
+                } else {
+                    addResult('Storage Integration', 'error', 'MinIO server not responding correctly ❌');
+                }
+            } catch (error) {
+                addResult('Storage Integration', 'error', `MinIO connection failed: ${error.message} ❌`);
+            }
+        }
+
+        // Run status check on page load
+        window.onload = checkSystemStatus;
+    </script>
+</body>
+</html>

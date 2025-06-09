@@ -10,7 +10,7 @@
 
 ## 🌟 Overview
 
-Dayli is a modern, secure, and beautifully designed journal application built specifically for couples. It provides a private space to document your relationship journey through daily entries, photo memories, and milestone tracking. With real-time synchronization and robust security features, Dayli ensures your precious moments are safely preserved and easily accessible.
+Dayli is a modern, secure, and beautifully designed journal application built specifically for couples. It provides a private space to document your relationship journey through daily entries, photo memories, and milestone tracking. With real-time synchronization, cloud storage integration, and robust security features, Dayli ensures your precious moments are safely preserved and easily accessible.
 
 ## ✨ Core Features
 
@@ -19,6 +19,222 @@ Dayli is a modern, secure, and beautifully designed journal application built sp
 - **Mood Tracking**: Tag entries with emotions (happy, excited, calm, grateful, anxious, sad)
 - **Rich Text Support**: Format your entries with beautiful typography
 - **Automatic Timestamps**: Every entry is timestamped and organized chronologically
+
+### 🔒 **Security & Privacy**
+- **Firebase Authentication**: Secure user management
+- **End-to-End Encryption**: Your data is protected at every level
+- **Private Sharing**: Only you and your partner can access your journal
+- **Secure Cloud Storage**: MinIO integration with AWS S3 compatibility
+
+### 🎨 **Modern Design**
+- **Beautiful UI**: Clean, intuitive interface built with React and Tailwind CSS
+- **Responsive Design**: Perfect experience on desktop and mobile
+- **Dark/Light Mode**: Switch between themes
+- **Smooth Animations**: Delightful interactions and transitions
+
+---
+
+## 🚀 Technology Stack
+
+### **Frontend**
+- **React 18** with TypeScript
+- **Vite** for lightning-fast development
+- **Tailwind CSS** for styling
+- **Shadcn/ui** for beautiful components
+- **React Router** for navigation
+- **React Query** for data management
+- **Framer Motion** for animations
+
+### **Backend & Database**
+- **Firebase Firestore** for real-time database
+- **Firebase Authentication** for secure user management
+- **MinIO** for object storage (S3 compatible)
+- **Express.js** API server for presigned URLs
+
+### **Development Tools**
+- **TypeScript** for type safety
+- **ESLint** for code quality
+- **Concurrently** for running multiple servers
+- **Vitest** for testing
+
+---
+
+## 🛠️ Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- Firebase project with Firestore enabled
+- MinIO server (Docker recommended)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Dayli
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**
+   ```bash
+   cp .env.example .env
+   # Configure your environment variables
+   ```
+
+4. **Start development servers**
+   ```bash
+   npm run dev
+   ```
+   This runs both the Vite dev server (port 8080) and MinIO API server (port 3001) concurrently.
+
+### Environment Variables
+```env
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=your_app_id
+
+# MinIO Configuration
+VITE_MINIO_ENDPOINT=localhost
+VITE_MINIO_PORT=9000
+VITE_MINIO_ACCESS_KEY=minioadmin
+VITE_MINIO_SECRET_KEY=minioadmin123
+VITE_MINIO_BUCKET_NAME=dayli-uploads
+VITE_MINIO_USE_SSL=false
+```
+
+---
+
+## 📦 Build & Deployment
+
+### Production Build
+```bash
+npm run build
+```
+
+### Deployment Options
+
+#### **Vercel (Recommended)**
+1. Connect your GitHub repository to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+#### **Manual Deployment**
+```bash
+npm run build
+# Deploy the dist/ folder to your hosting provider
+```
+
+---
+
+## 🏗️ Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── layout/         # Layout components
+│   └── ui/             # UI components (buttons, cards, etc.)
+├── contexts/           # React contexts
+├── hooks/              # Custom React hooks
+├── lib/                # Utility libraries
+│   ├── firebase.ts    # Firebase configuration
+│   ├── minio.ts       # MinIO client
+│   └── storage-*.ts   # Storage implementations
+├── pages/              # Page components
+├── services/           # Business logic and API calls
+├── styles/             # Global styles
+└── utils/              # Utility functions
+
+server/
+└── presigned-url-api.cjs  # MinIO presigned URL server
+
+docs/
+├── API.md              # API documentation
+├── DEPLOYMENT.md       # Deployment guide
+├── SECURITY.md         # Security guidelines
+└── SETUP.md            # Setup instructions
+```
+
+---
+
+## 🔧 Development Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development servers (Vite + API) |
+| `npm run dev:vite` | Start only Vite dev server |
+| `npm run dev:api` | Start only MinIO API server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+
+---
+
+## 📸 Features Overview
+
+### **Dashboard**
+- Activity overview and recent entries
+- Quick access to all features
+- Mood tracking visualization
+
+### **Journal**
+- Daily entry creation and editing
+- Mood selection and tagging
+- Search and filter capabilities
+
+### **Memories**
+- Photo and GIF upload
+- Memory gallery with favorites
+- Secure cloud storage
+
+### **Milestones**
+- Important date tracking
+- Anniversary reminders
+- Achievement celebrations
+
+### **Settings**
+- Profile management
+- Theme preferences
+- Privacy controls
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details.
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 💡 Support
+
+If you encounter any issues or have questions:
+
+1. Check our [Documentation](docs/)
+2. Search existing [Issues](../../issues)
+3. Create a new issue if needed
+
+---
+
+**Built with ❤️ for couples who want to cherish their journey together**
 - **Real-time Sync**: Changes appear instantly for both partners
 
 ### 📸 **Memory Collection**

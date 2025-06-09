@@ -8,6 +8,8 @@ interface MinIOConfig {
   port: number;
   useSSL: boolean;
   bucketName: string;
+  accessKey: string;
+  secretKey: string;
 }
 
 class BrowserMinIOClient {

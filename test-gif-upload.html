@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF Upload Test - Dayli</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 5px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 GIF Upload Test - Dayli Memory Storage</h1>
+        <p>This page tests GIF file uploads using the same storage system as the Memories page.</p>
+        
+        <div class="test-section info">
+            <h2>📋 Test Environment</h2>
+            <div id="environment-info">
+                <p><strong>MinIO Endpoint:</strong> <span id="minio-endpoint">Loading...</span></p>
+                <p><strong>Browser MinIO Client:</strong> <span id="browser-client">Loading...</span></p>
+                <p><strong>API Endpoint:</strong> <span id="api-endpoint">Loading...</span></p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📁 File Upload Test</h2>
+            <p>Select a GIF file to test the upload process:</p>
+            <input type="file" id="fileInput" accept="image/gif" />
+            <button onclick="testGifUpload()" id="uploadBtn" disabled>Upload GIF</button>
+            <button onclick="createTestGif()" id="createGifBtn">Create Test GIF</button>
+            
+            <div id="file-info" style="margin-top: 10px;"></div>
+            <div id="upload-progress" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Storage System Test</h2>
+            <button onclick="testStorageSystem()">Test Storage-Smart System</button>
+            <div id="storage-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Console Logs</h2>
+            <pre id="console-output"></pre>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script>
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        let logs = [];
+        
+        function addLog(type, ...args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            logs.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            updateConsoleOutput();
+            
+            // Call original console methods
+            if (type === 'log') originalLog(...args);
+            else if (type === 'error') originalError(...args);
+            else if (type === 'warn') originalWarn(...args);
+        }
+        
+        console.log = (...args) => addLog('log', ...args);
+        console.error = (...args) => addLog('error', ...args);
+        console.warn = (...args) => addLog('warn', ...args);
+        
+        function updateConsoleOutput() {
+            document.getElementById('console-output').textContent = logs.slice(-20).join('\n');
+        }
+        
+        function clearLogs() {
+            logs = [];
+            updateConsoleOutput();
+        }
+
+        // Environment check
+        async function checkEnvironment() {
+            try {
+                // Check MinIO endpoint
+                const minioEndpoint = import.meta?.env?.VITE_MINIO_ENDPOINT || 'localhost:9000';
+                document.getElementById('minio-endpoint').textContent = minioEndpoint;
+                
+                // Check if browser MinIO client is available
+                try {
+                    const { uploadFileToBrowserMinIO } = await import('./src/lib/minio-browser.js');
+                    document.getElementById('browser-client').textContent = '✅ Available';
+                } catch (error) {
+                    document.getElementById('browser-client').textContent = '❌ Error: ' + error.message;
+                }
+                
+                // Check API endpoint
+                try {
+                    const response = await fetch('/api/presigned-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fileName: 'test.gif', pathPrefix: 'test' })
+                    });
+                    if (response.ok) {
+                        document.getElementById('api-endpoint').textContent = '✅ Available';
+                    } else {
+                        document.getElementById('api-endpoint').textContent = '❌ HTTP ' + response.status;
+                    }
+                } catch (error) {
+                    document.getElementById('api-endpoint').textContent = '❌ Error: ' + error.message;
+                }
+                
+            } catch (error) {
+                console.error('Environment check failed:', error);
+            }
+        }
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileInfo = document.getElementById('file-info');
+            
+            if (file) {
+                fileInfo.innerHTML = `
+                    <p><strong>File:</strong> ${file.name}</p>
+                    <p><strong>Type:</strong> ${file.type}</p>
+                    <p><strong>Size:</strong> ${(file.size / 1024).toFixed(2)} KB</p>
+                `;
+                uploadBtn.disabled = false;
+                console.log('File selected:', file);
+            } else {
+                fileInfo.innerHTML = '';
+                uploadBtn.disabled = true;
+            }
+        });
+
+        // Create a test GIF
+        function createTestGif() {
+            console.log('Creating test GIF...');
+            
+            // Create a simple animated GIF using canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw a simple pattern
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillRect(0, 0, 100, 100);
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillRect(25, 25, 50, 50);
+            ctx.fillStyle = '#45b7d1';
+            ctx.fillRect(40, 40, 20, 20);
+            
+            canvas.toBlob(function(blob) {
+                // Create a file from the blob
+                const file = new File([blob], 'test-animation.gif', { type: 'image/gif' });
+                
+                // Simulate file selection
+                const fileInput = document.getElementById('fileInput');
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                
+                // Trigger change event
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                console.log('Test GIF created:', file);
+            }, 'image/gif');
+        }
+
+        // Test GIF upload using the same system as Memories page
+        async function testGifUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const progressDiv = document.getElementById('upload-progress');
+            
+            if (!file) {
+                alert('Please select a GIF file first');
+                return;
+            }
+            
+            console.log('Starting GIF upload test...');
+            progressDiv.innerHTML = '<p>🚀 Starting upload...</p>';
+            
+            try {
+                // Test 1: Direct browser MinIO upload
+                console.log('Test 1: Direct browser MinIO upload');
+                progressDiv.innerHTML += '<p>📡 Testing browser MinIO client...</p>';
+                
+                const { uploadFileToBrowserMinIO } = await import('./src/lib/minio-browser.js');
+                const directUrl = await uploadFileToBrowserMinIO(file, 'test-gif');
+                
+                console.log('✅ Direct upload successful:', directUrl);
+                progressDiv.innerHTML += `<p class="success">✅ Direct upload successful: ${directUrl}</p>`;
+                
+                // Test 2: Storage-smart system (same as Memories page)
+                console.log('Test 2: Storage-smart system');
+                progressDiv.innerHTML += '<p>📡 Testing storage-smart system...</p>';
+                
+                const { uploadFile } = await import('./src/lib/storage-smart.js');
+                const smartUrl = await uploadFile(file, 'memories');
+                
+                console.log('✅ Storage-smart upload successful:', smartUrl);
+                progressDiv.innerHTML += `<p class="success">✅ Storage-smart upload successful: ${smartUrl}</p>`;
+                
+                // Test 3: Simulate the exact Memories page flow
+                console.log('Test 3: Simulating Memories page flow');
+                progressDiv.innerHTML += '<p>📡 Testing exact Memories page flow...</p>';
+                
+                // This simulates the saveMemory function call
+                const mockMemory = {
+                    title: 'Test GIF Memory',
+                    date: new Date().toLocaleDateString(),
+                    caption: 'Testing GIF upload functionality',
+                    createdBy: 'test-user-id'
+                };
+                
+                // Call storage-smart uploadFile (same as memoriesService.ts)
+                const memoryUrl = await uploadFile(file, 'memories');
+                
+                console.log('✅ Memories page simulation successful:', memoryUrl);
+                progressDiv.innerHTML += `<p class="success">✅ Memories page simulation successful: ${memoryUrl}</p>`;
+                
+            } catch (error) {
+                console.error('❌ Upload failed:', error);
+                progressDiv.innerHTML += `<p class="error">❌ Upload failed: ${error.message}</p>`;
+                
+                // Log detailed error information
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
+            }
+        }
+
+        // Test the storage system independently
+        async function testStorageSystem() {
+            const resultDiv = document.getElementById('storage-result');
+            resultDiv.innerHTML = '<p>🔍 Testing storage system...</p>';
+            
+            try {
+                // Create a simple test file
+                const testContent = 'Test GIF content simulation';
+                const testFile = new File([testContent], 'test-storage.gif', { type: 'image/gif' });
+                
+                console.log('Testing storage system with test file:', testFile);
+                
+                // Import and test storage-smart
+                const { uploadFile } = await import('./src/lib/storage-smart.js');
+                const url = await uploadFile(testFile, 'test');
+                
+                console.log('✅ Storage system test successful:', url);
+                resultDiv.innerHTML = `<p class="success">✅ Storage system working: ${url}</p>`;
+                
+            } catch (error) {
+                console.error('❌ Storage system test failed:', error);
+                resultDiv.innerHTML = `<p class="error">❌ Storage system failed: ${error.message}</p>`;
+            }
+        }
+
+        // Initialize
+        console.log('🎬 GIF Upload Test Page Loaded');
+        checkEnvironment();
+    </script>
+</body>
+</html>

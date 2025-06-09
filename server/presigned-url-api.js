@@ -12,14 +12,14 @@ app.use(express.json());
 
 // Configure MinIO client
 const minioClient = new Client({
-  endPoint: process.env.VITE_MINIO_ENDPOINT || 'localhost',
-  port: parseInt(process.env.VITE_MINIO_PORT || '9000'),
-  useSSL: process.env.VITE_MINIO_USE_SSL === 'true',
-  accessKey: process.env.VITE_MINIO_ACCESS_KEY || 'minioadmin',
-  secretKey: process.env.VITE_MINIO_SECRET_KEY || 'minioadmin123',
+  endPoint: process.env.MINIO_ENDPOINT || 'play.min.io',
+  port: parseInt(process.env.MINIO_PORT || '9000'),
+  useSSL: process.env.MINIO_USE_SSL === 'true',
+  accessKey: process.env.MINIO_ACCESS_KEY || '',
+  secretKey: process.env.MINIO_SECRET_KEY || '',
 });
 
-const BUCKET_NAME = process.env.VITE_MINIO_BUCKET_NAME || 'dayli-uploads';
+const BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'dayli-data';
 
 // Ensure bucket exists
 async function ensureBucketExists() {
@@ -55,12 +55,12 @@ async function ensureBucketExists() {
 })();
 
 // Endpoint to generate pre-signed URL for uploads
-app.post('/api/presigned-url', async (req, res) => {
+app.post('/api/get-upload-url', async (req, res) => {
   try {
-    const { fileName, fileType } = req.body;
+    const { fileName, contentType } = req.body;
     
-    if (!fileName || !fileType) {
-      return res.status(400).json({ error: 'fileName and fileType are required' });
+    if (!fileName || !contentType) {
+      return res.status(400).json({ error: 'fileName and contentType are required' });
     }
     
     // Generate pre-signed URL that expires in 10 minutes
@@ -70,12 +70,8 @@ app.post('/api/presigned-url', async (req, res) => {
       60 * 10 // 10 minutes expiry
     );
     
-    // Generate the public URL for the uploaded file
-    const fileUrl = `http://${process.env.VITE_MINIO_ENDPOINT || 'localhost'}:${process.env.VITE_MINIO_PORT || '9000'}/${BUCKET_NAME}/${fileName}`;
-    
     return res.json({
-      uploadUrl: presignedUrl,
-      fileUrl: fileUrl,
+      url: presignedUrl,
       bucket: BUCKET_NAME,
       key: fileName,
     });

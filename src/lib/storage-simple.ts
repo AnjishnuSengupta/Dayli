@@ -41,38 +41,14 @@ export const uploadFile = async (file: File, pathPrefix: string = 'memories'): P
       size: file.size
     });
 
-    // Create FormData for multipart upload
-    const formData = new FormData();
-    formData.append('file', file);
+    // Use proper MinIO client for S3-compatible upload
+    const { uploadFile: minioUploadFile } = await import('./minio');
     
-    // Use the MinIO browser upload endpoint
-    const uploadUrl = `${ENDPOINT_URL}/${BUCKET_NAME}/${fileName}`;
+    // Upload using MinIO client with proper S3 authentication
+    const fileUrl = await minioUploadFile(file, pathPrefix);
     
-    const response = await axios.put(uploadUrl, file, {
-      headers: {
-        'Content-Type': file.type,
-        'x-amz-acl': 'public-read',
-      },
-      auth: {
-        username: ACCESS_KEY,
-        password: SECRET_KEY
-      },
-      timeout: 30000,
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          console.log(`Upload progress: ${progress}%`);
-        }
-      }
-    });
-
-    if (response.status >= 200 && response.status < 300) {
-      const fileUrl = `${ENDPOINT_URL}/${BUCKET_NAME}/${fileName}`;
-      console.log('✅ Upload successful:', fileUrl);
-      return fileUrl;
-    } else {
-      throw new Error(`Upload failed with status: ${response.status}`);
-    }
+    console.log('✅ Upload successful:', fileUrl);
+    return fileUrl;
   } catch (error) {
     console.error('❌ Upload error:', error);
     

@@ -41,11 +41,11 @@ export const uploadFile = async (file: File, pathPrefix: string = 'memories'): P
       size: file.size
     });
 
-    // Use proper MinIO client for S3-compatible upload
-    const { uploadFile: minioUploadFile } = await import('./minio');
+    // Use browser-compatible MinIO client
+    const { uploadFileToBrowserMinIO } = await import('./minio-browser');
     
-    // Upload using MinIO client with proper S3 authentication
-    const fileUrl = await minioUploadFile(file, pathPrefix);
+    // Upload using browser MinIO client
+    const fileUrl = await uploadFileToBrowserMinIO(file, pathPrefix);
     
     console.log('✅ Upload successful:', fileUrl);
     return fileUrl;

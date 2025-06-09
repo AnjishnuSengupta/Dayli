@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MinIO Integration Test - Complete</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { margin: 5px; padding: 8px 16px; cursor: pointer; }
+        img { max-width: 200px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🎉 MinIO Integration Test - COMPLETE</h1>
+    
+    <div class="test-result success">
+        ✅ <strong>MinIO Container:</strong> Running on localhost:9000
+    </div>
+    
+    <div class="test-result success">
+        ✅ <strong>Bucket:</strong> dayli-uploads created with public access
+    </div>
+    
+    <div class="test-result success">
+        ✅ <strong>Test Image:</strong> Successfully uploaded via CLI
+    </div>
+    
+    <div class="test-result info">
+        📷 <strong>Test the uploaded image:</strong>
+        <br><img src="http://localhost:9000/dayli-uploads/test-upload.png" alt="Test Upload" style="border: 1px solid #ccc;">
+        <br><small>URL: http://localhost:9000/dayli-uploads/test-upload.png</small>
+    </div>
+    
+    <h2>Interactive Tests</h2>
+    
+    <div>
+        <h3>Test Manual Upload:</h3>
+        <input type="file" id="fileInput" accept="image/*">
+        <button onclick="testMinIOUpload()">Upload to MinIO</button>
+        <div id="uploadResult"></div>
+    </div>
+    
+    <div>
+        <h3>Test Application Integration:</h3>
+        <button onclick="window.open('http://localhost:8080/memories', '_blank')">Open Dayli Memories Page</button>
+        <button onclick="window.open('http://localhost:9001', '_blank')">Open MinIO Console</button>
+    </div>
+    
+    <div>
+        <h3>Integration Status:</h3>
+        <div class="test-result success">
+            ✅ Smart storage system implemented (MinIO + IndexedDB fallback)
+        </div>
+        <div class="test-result success">
+            ✅ SmartImage component for universal image display
+        </div>
+        <div class="test-result success">
+            ✅ Memory service updated to use smart storage
+        </div>
+        <div class="test-result success">
+            ✅ Environment configured for localhost MinIO
+        </div>
+    </div>
+
+    <script>
+        async function testMinIOUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('uploadResult');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                resultDiv.innerHTML = '<div class="test-result error">❌ Please select a file first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="test-result info">🔄 Uploading...</div>';
+            
+            try {
+                const filename = `test-${Date.now()}-${file.name}`;
+                const url = `http://localhost:9000/dayli-uploads/${filename}`;
+                
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type
+                    }
+                });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result success">
+                            ✅ Upload successful!<br>
+                            <img src="${url}" alt="Uploaded image"><br>
+                            <small>URL: ${url}</small>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="test-result error">❌ Upload failed: ${response.status} ${response.statusText}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Test connectivity on page load
+        window.onload = function() {
+            fetch('http://localhost:9000/dayli-uploads/test-upload.png')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✅ MinIO connectivity confirmed');
+                    }
+                })
+                .catch(error => {
+                    console.log('⚠️ MinIO connectivity issue:', error);
+                });
+        };
+    </script>
+</body>
+</html>

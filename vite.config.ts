@@ -23,12 +23,11 @@ export default defineConfig(({ mode }) => ({
     global: 'globalThis',
   },
   build: {
-    chunkSizeWarningLimit: 900, // Increase the chunk size warning limit
+    chunkSizeWarningLimit: 900,
     rollupOptions: {
       external: mode === 'production' ? ['minio'] : [],
       output: {
         manualChunks: {
-          // Split the vendor code into separate chunks
           'vendor': ['react', 'react-dom', 'react-router-dom'],
           'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'ui': [
@@ -38,9 +37,11 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-accordion'
           ]
         },
-        globals: mode === 'production' ? {
-          'minio': 'undefined'
-        } : {}
+        ...(mode === 'production' ? {
+          globals: {
+            'minio': 'undefined'
+          }
+        } : {})
       }
     }
   },

@@ -12,8 +12,8 @@ const USE_SSL = import.meta.env.VITE_MINIO_USE_SSL === 'true';
 const PROTOCOL = USE_SSL ? 'https' : 'http';
 const PORT = import.meta.env.VITE_MINIO_PORT || '9000';
 const BUCKET_NAME = import.meta.env.VITE_MINIO_BUCKET_NAME || 'dayli-data';
-const ACCESS_KEY = import.meta.env.VITE_MINIO_ACCESS_KEY || 'anjishnu';
-const SECRET_KEY = import.meta.env.VITE_MINIO_SECRET_KEY || 'Anjishnu0035';
+const ACCESS_KEY = import.meta.env.VITE_MINIO_ACCESS_KEY || '';
+const SECRET_KEY = import.meta.env.VITE_MINIO_SECRET_KEY || '';
 const REGION = 'us-east-1'; // Default region for MinIO
 
 // The full endpoint URL

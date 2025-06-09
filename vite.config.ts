@@ -19,9 +19,13 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    global: 'globalThis',
+  },
   build: {
     chunkSizeWarningLimit: 900, // Increase the chunk size warning limit
     rollupOptions: {
+      external: mode === 'production' ? ['minio'] : [],
       output: {
         manualChunks: {
           // Split the vendor code into separate chunks
@@ -33,8 +37,14 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-tabs',
             '@radix-ui/react-accordion'
           ]
-        }
+        },
+        globals: mode === 'production' ? {
+          'minio': 'undefined'
+        } : {}
       }
     }
+  },
+  optimizeDeps: {
+    exclude: mode === 'production' ? ['minio'] : [],
   },
 }));

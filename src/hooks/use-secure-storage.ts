@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { secureUpload, secureDelete } from '../lib/secure-storage';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 
 /**
  * Custom hook for secure storage operations

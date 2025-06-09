@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Book, Image, Trophy, User, LogOut, Menu, X } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/sonner';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NavigationProps {

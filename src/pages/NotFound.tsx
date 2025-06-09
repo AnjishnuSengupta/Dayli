@@ -5,7 +5,7 @@ import { Heart, Home, Search, ArrowLeft } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 const NotFound = () => {
   const [searchQuery, setSearchQuery] = useState('');

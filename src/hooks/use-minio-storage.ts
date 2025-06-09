@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { uploadFile, deleteFile } from '../lib/storage-browser';
+import { uploadFile, deleteFile } from '../lib/storage-smart';
 
 // Custom hook for handling storage operations
 export const useMinioStorage = () => {

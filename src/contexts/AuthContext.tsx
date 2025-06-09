@@ -11,7 +11,7 @@ import {
   UserCredential
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { saveAuthState, saveUserData, clearAuthState, createStorableUser } from '@/utils/authStorage';
 
 interface AuthContextType {
@@ -24,15 +24,8 @@ interface AuthContextType {
   updateUserEmail: (email: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// eslint-disable-next-line react-refresh/only-export-components
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

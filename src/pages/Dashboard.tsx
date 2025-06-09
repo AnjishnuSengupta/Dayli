@@ -7,7 +7,7 @@ import JournalCard from '../components/ui/JournalCard';
 import MoodPicker from '../components/ui/MoodPicker';
 import FloatingHearts from '../components/ui/FloatingHearts';
 import ZoomStagger from '../components/ui/ZoomStagger';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { motion } from 'framer-motion';

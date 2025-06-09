@@ -6,7 +6,7 @@ import FloatingHearts from '../components/ui/FloatingHearts';
 import { Calendar, Trophy, Plus, Heart, Award, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { addMilestone, getMilestones, generateAutomaticMilestones } from '@/services/milestonesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { doc, getDoc } from 'firebase/firestore';

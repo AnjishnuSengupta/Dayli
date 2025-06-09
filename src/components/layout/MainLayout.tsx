@@ -5,7 +5,7 @@ import { Heart } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 
 interface MainLayoutProps {
   children: ReactNode;

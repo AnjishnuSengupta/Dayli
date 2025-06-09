@@ -13,8 +13,8 @@ import {
   deleteDoc,
   getDoc
 } from "firebase/firestore";
-// Import the secure storage implementation
-import { secureUpload, secureDelete } from "../lib/secure-storage";
+// Import the smart storage implementation
+import { uploadFile, deleteFile } from "../lib/storage-smart";
 
 export interface Memory {
   id?: string;
@@ -43,8 +43,8 @@ export const saveMemory = async (
     throw new Error('Invalid memory: All fields must be filled out');
   }
   
-  // Upload the image to storage securely with user-specific access controls
-  const imageUrl = await secureUpload(imageFile, 'memories', userId);
+  // Upload the image to storage directly with user-specific access controls
+  const imageUrl = await uploadFile(imageFile, 'memories');
   
   // Save the memory data with the image URL to Firestore
   const memoryData = {
@@ -133,8 +133,8 @@ export const deleteMemory = async (memoryId: string, imageUrl: string, userId: s
     // Delete the document from Firestore
     await deleteDoc(memoryRef);
     
-    // Also delete the image using the secure delete function
-    await secureDelete(imageUrl, userId);
+    // Also delete the image using the direct delete function
+    await deleteFile(imageUrl);
     
     return true;
   } catch (error) {

@@ -4,13 +4,12 @@ import JournalCard from '../components/ui/JournalCard';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { toast } from '@/components/ui/sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { User, updateProfile, updateEmail } from 'firebase/auth';
 import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 // Remove the MinIO storage import and only use secure storage
-import { useSecureStorage } from '@/hooks/use-secure-storage';
+import { useMinioStorage } from '@/hooks/use-minio-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Calendar, User as UserIcon, Mail, Camera, Loader2, Shield } from 'lucide-react';
 
@@ -33,10 +32,10 @@ const Settings = () => {
   const [dateError, setDateError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Use secure storage implementation
-  const { upload } = useSecureStorage();
+  const { upload } = useMinioStorage();
   
   const { toast: hookToast } = useToast();
-
+  const { toast } = useToast();
   // Apply dark mode when the setting changes
   useEffect(() => {
     if (isDarkMode) {
@@ -69,7 +68,11 @@ const Settings = () => {
         };
       } catch (error) {
         console.error("Error fetching user settings:", error);
-        toast.error("Couldn't load your settings");
+        toast({
+          title: "Error",
+          description: "Couldn't load your settings",
+          variant: "destructive"
+        });
         return null;
       }
     },
@@ -146,27 +149,42 @@ const Settings = () => {
       }
     },
     onSuccess: () => {
-      toast.success("Profile updated successfully!");
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
     },
     onError: (error) => {
-      toast.error("Failed to update profile: " + (error instanceof Error ? error.message : "Unknown error"));
+      toast({
+        title: "Error",
+        description: "Failed to update profile: " + (error instanceof Error ? error.message : "Unknown error"),
+        variant: "destructive"
+      });
     }
   });
 
   // Handle profile picture upload
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !currentUser) return;
-    
-    const file = e.target.files[0];
-    
-    // Additional security validation
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) {
+      return;
+    }
+
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Profile picture must be smaller than 5MB");
+      toast({
+        title: "Error",
+        description: "Profile picture must be smaller than 5MB",
+        variant: "destructive"
+      });
       return;
     }
     
     if (!file.type.startsWith('image/')) {
-      toast.error("Only image files are allowed for profile pictures");
+      toast({
+        title: "Error",
+        description: "Only image files are allowed for profile pictures",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -188,10 +206,17 @@ const Settings = () => {
       // Immediately update the profile with the new photo
       await updateUserProfile(displayName, downloadURL);
       
-      toast.success("Profile picture securely uploaded!");
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully",
+      });
     } catch (error) {
       console.error("Error uploading profile picture:", error);
-      toast.error("Failed to upload profile picture: " + (error instanceof Error ? error.message : "Unknown error"));
+      toast({
+        title: "Error",
+        description: "Failed to upload profile picture",
+        variant: "destructive"
+      });
     } finally {
       setIsUploading(false);
     }
@@ -203,12 +228,20 @@ const Settings = () => {
     
     // Validate inputs
     if (!displayName.trim()) {
-      toast.error("Please enter your name");
+      toast({
+        title: "Error",
+        description: "Please enter your name",
+        variant: "destructive"
+      });
       return;
     }
     
     if (!email.trim() || !email.includes('@')) {
-      toast.error("Please enter a valid email address");
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
       return;
     }
     

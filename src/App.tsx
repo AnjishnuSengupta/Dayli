@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import { useAuth } from "./contexts/AuthContext";
+import { useAuth } from "./hooks/use-auth";
 import { getAuthState } from "./utils/authStorage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import AnimatedRoute from "./components/AnimatedRoute";

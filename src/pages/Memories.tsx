@@ -6,13 +6,13 @@ import FloatingHearts from '../components/ui/FloatingHearts';
 import MemoryGallery from '../components/ui/MemoryGallery';
 import { Camera, Plus, Bookmark, Heart, Loader2, Trash2, Grid, List, Filter, Search, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { Memory } from '@/services/memoriesService';
 // Import secure memory services
 import { saveMemory, getMemories, toggleFavorite, deleteMemory } from '@/services/memoriesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useSecureStorage } from '@/hooks/use-secure-storage';
+import { useMinioStorage } from '@/hooks/use-minio-storage';
 import { Timestamp } from 'firebase/firestore';
 
 const Memories = () => {
@@ -30,7 +30,7 @@ const Memories = () => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
-  const { upload } = useSecureStorage(); // Use the secure storage hook
+  const { upload } = useMinioStorage(); // Use the direct MinIO storage hook
   
   // Fetch memories
   const { data: memories, isLoading } = useQuery({

@@ -1,9 +1,9 @@
 // Example API endpoint for generating pre-signed URLs for MinIO uploads
 // This would typically be implemented in your backend server
 
-import express from 'express';
-import { Client } from 'minio';
-import dotenv from 'dotenv';
+const express = require('express');
+const { Client } = require('minio');
+const dotenv = require('dotenv');
 
 dotenv.config();
 
@@ -82,9 +82,9 @@ app.post('/api/get-upload-url', async (req, res) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Presigned URL server running on port ${PORT}`);
 });
 
-export default app;
+module.exports = app;

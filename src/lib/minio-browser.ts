@@ -1,14 +1,12 @@
 /**
- * Browser-compatible MinIO client using fetch API
- * Falls back gracefully when MinIO is not available
+ * Browser-compatible MinIO client using presigned URLs
+ * This implementation is secure and avoids exposing credentials in browser
  */
 
 interface MinIOConfig {
   endpoint: string;
   port: number;
   useSSL: boolean;
-  accessKey: string;
-  secretKey: string;
   bucketName: string;
 }
 
@@ -23,54 +21,64 @@ class BrowserMinIOClient {
   }
 
   /**
-   * Upload a file using MinIO's REST API with basic authentication
-   * This is a simplified approach for development environments
+   * Upload a file using presigned URL (secure method for browser uploads)
    */
   async uploadFile(file: File, objectName: string): Promise<string> {
     try {
-      const uploadUrl = `${this.baseUrl}/${this.config.bucketName}/${objectName}`;
+      // Generate presigned URL on server (this would be from your backend API)
+      const presignedUrl = await this.getPresignedUrl(objectName);
       
-      console.log('🚀 Attempting browser MinIO upload to:', uploadUrl);
+      console.log('Attempting browser MinIO upload with presigned URL');
       
-      // Try simple PUT request first (for public buckets)
-      const response = await fetch(uploadUrl, {
+      const response = await fetch(presignedUrl, {
         method: 'PUT',
         body: file,
         headers: {
-          'Content-Type': file.type,
-        },
-        mode: 'cors' // Enable CORS
+          'Content-Type': file.type
+        }
       });
 
-      if (response.ok) {
-        console.log('✅ Browser MinIO upload successful (no auth)');
-        return uploadUrl;
-      }
-
-      // If that fails, try with basic auth
-      const authHeader = 'Basic ' + btoa(`${this.config.accessKey}:${this.config.secretKey}`);
-      
-      const authResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-          'Authorization': authHeader
-        },
-        mode: 'cors'
-      });
-
-      if (authResponse.ok) {
-        console.log('✅ Browser MinIO upload successful (with basic auth)');
-        return uploadUrl;
+      if (response.ok || response.status === 200) {
+        console.log('✅ Browser MinIO upload successful');
+        const publicUrl = `${this.baseUrl}/${this.config.bucketName}/${objectName}`;
+        return publicUrl;
       } else {
-        throw new Error(`MinIO upload failed: ${authResponse.status} ${authResponse.statusText}`);
+        const errorText = await response.text();
+        console.error('Upload failed:', response.status, errorText);
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
       }
-      
     } catch (error) {
-      // Don't throw here - let the smart storage handle fallback
-      console.warn('⚠️ Browser MinIO upload failed, will use fallback storage:', error);
+      console.error('Browser MinIO upload error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get presigned URL from backend server (secure approach)
+   */
+  private async getPresignedUrl(objectName: string): Promise<string> {
+    try {
+      // Call the backend API to get a presigned URL
+      const response = await fetch('/api/get-upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fileName: objectName,
+          contentType: 'application/octet-stream' // Will be overridden by file type
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get presigned URL: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Error getting presigned URL:', error);
+      throw new Error('Failed to get upload URL from server');
     }
   }
 
@@ -95,13 +103,13 @@ export const createBrowserMinIOClient = (): BrowserMinIOClient | null => {
     };
 
     if (!config.accessKey || !config.secretKey) {
-      console.warn('MinIO credentials not configured, will use fallback storage');
+      console.warn('MinIO credentials not configured');
       return null;
     }
 
     return new BrowserMinIOClient(config);
   } catch (error) {
-    console.warn('Failed to create MinIO client, will use fallback storage:', error);
+    console.warn('Failed to create MinIO client:', error);
     return null;
   }
 };

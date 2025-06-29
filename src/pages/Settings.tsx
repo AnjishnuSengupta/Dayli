@@ -5,20 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { User, updateProfile, updateEmail } from 'firebase/auth';
-import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-// Remove the MinIO storage import and only use secure storage
-import { useMinioStorage } from '@/hooks/use-minio-storage';
+// Use universal image service for MongoDB
+import { uploadImage } from '@/services/imageService.universal';
+import SmartImage from '@/components/ui/SmartImage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Calendar, User as UserIcon, Mail, Camera, Loader2, Shield } from 'lucide-react';
+import * as userService from '../services/userService.universal';
 
-// Interface for user settings data
+// Interface for user settings data (use the one from userService.universal)
 interface UserSettings {
   relationshipStartDate: string;
   darkMode: boolean;
   userId?: string;
   createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const Settings = () => {
@@ -31,8 +31,6 @@ const Settings = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [dateError, setDateError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Use secure storage implementation
-  const { upload } = useMinioStorage();
   
   const { toast: hookToast } = useToast();
   const { toast } = useToast();
@@ -45,18 +43,21 @@ const Settings = () => {
     }
   }, [isDarkMode]);
 
-  // Fetch user settings from Firestore
+  // Sync photoUrl state with currentUser.photoURL when it changes
+  useEffect(() => {
+    setPhotoUrl(currentUser?.photoURL || null);
+  }, [currentUser?.photoURL]);
+
+  // Fetch user settings using universal service
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
-    queryKey: ['user-settings', currentUser?.uid],
+    queryKey: ['user-settings', currentUser?.id],
     queryFn: async () => {
-      if (!currentUser?.uid) return null;
+      if (!currentUser?.id) return null;
       
       try {
-        const docRef = doc(db, "user_settings", currentUser.uid);
-        const docSnap = await getDoc(docRef);
+        const data = await userService.getUserSettings(currentUser.id);
         
-        if (docSnap.exists()) {
-          const data = docSnap.data() as UserSettings;
+        if (data) {
           setRelationshipStartDate(data.relationshipStartDate || '');
           setIsDarkMode(data.darkMode || false);
           return data;
@@ -76,7 +77,7 @@ const Settings = () => {
         return null;
       }
     },
-    enabled: !!currentUser?.uid
+    enabled: !!currentUser?.id
   });
 
   // Function to validate the relationship start date
@@ -104,43 +105,28 @@ const Settings = () => {
     return true;
   };
 
-  // Update profile mutation
+  // Update profile mutation using universal service
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
       if (!currentUser) throw new Error("Not authenticated");
       
       try {
         // Update profile (displayName and optionally photoURL)
-        await updateUserProfile(displayName, photoUrl);
+        await updateUserProfile(displayName, photoUrl || null);
         
         // Update email if changed
         if (email !== currentUser.email) {
           await updateUserEmail(email);
         }
         
-        // Update user settings in Firestore
-        const userSettingsRef = doc(db, "user_settings", currentUser.uid);
-        
-        // Check if document exists first
-        const docSnap = await getDoc(userSettingsRef);
-        
-        if (docSnap.exists()) {
-          // Update existing document
-          await updateDoc(userSettingsRef, {
+        // Update user settings using universal service
+        await userService.updateUserSettings(
+          {
             relationshipStartDate,
-            darkMode: isDarkMode,
-            updatedAt: new Date()
-          });
-        } else {
-          // Create new document with setDoc
-          await setDoc(userSettingsRef, {
-            relationshipStartDate,
-            darkMode: isDarkMode,
-            userId: currentUser.uid,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-        }
+            darkMode: isDarkMode
+          },
+          currentUser.id
+        );
         
         return true;
       } catch (error) {
@@ -191,19 +177,19 @@ const Settings = () => {
     setIsUploading(true);
     
     try {
-      // Upload using secure storage implementation
-      const userId = currentUser.uid;
+      // Upload using universal image service
+      const userId = currentUser.id;
       const renamedFile = new File([file], `${userId}_${Date.now()}.${file.name.split('.').pop()}`, {
         type: file.type
       });
       
-      // Upload file and get URL with profile_pictures path prefix and user ID for access control
-      const downloadURL = await upload(renamedFile, `profile_pictures/${userId}`);
+      // Upload file and get URL with profile_pictures path prefix
+      const downloadURL = await uploadImage(renamedFile, 'profile_pictures');
       
       // Set new photo URL
       setPhotoUrl(downloadURL);
       
-      // Immediately update the profile with the new photo
+      // Immediately update the profile with the new photo using AuthContext
       await updateUserProfile(displayName, downloadURL);
       
       toast({
@@ -286,7 +272,7 @@ const Settings = () => {
                 {isUploading ? (
                   <Loader2 className="animate-spin text-journal-lavender" />
                 ) : photoUrl ? (
-                  <img 
+                  <SmartImage 
                     src={photoUrl} 
                     alt="Profile" 
                     className="w-full h-full object-cover"

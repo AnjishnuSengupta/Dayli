@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFileData } from '@/lib/storage-smart';
+import { getImageData } from '@/services/imageService.universal';
 
 interface SmartImageProps {
   src: string;
@@ -9,7 +9,7 @@ interface SmartImageProps {
 }
 
 /**
- * Smart image component that can display images from both MinIO and fallback storage
+ * Smart image component that displays images with loading and error handling
  */
 export const SmartImage: React.FC<SmartImageProps> = ({ src, alt, className, onClick }) => {
   const [imageSrc, setImageSrc] = useState<string>('');
@@ -22,12 +22,9 @@ export const SmartImage: React.FC<SmartImageProps> = ({ src, alt, className, onC
         setIsLoading(true);
         setError(null);
         
-        const imageData = await getFileData(src);
-        if (imageData) {
-          setImageSrc(imageData);
-        } else {
-          setError('Failed to load image');
-        }
+        // Use the image service to get the actual image data
+        const imageData = await getImageData(src);
+        setImageSrc(imageData);
       } catch (err) {
         console.error('Error loading image:', err);
         setError('Failed to load image');
@@ -36,8 +33,11 @@ export const SmartImage: React.FC<SmartImageProps> = ({ src, alt, className, onC
       }
     };
 
-    if (src) {
+    if (src && src.trim()) {
       loadImage();
+    } else {
+      setIsLoading(false);
+      setError('No image source provided');
     }
   }, [src]);
 

@@ -7,13 +7,11 @@ import { Calendar, Heart, Save, User, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
-import { saveJournalEntry, getJournalEntries, JournalEntry } from '@/services/journalService';
+import { saveJournalEntry, getJournalEntries, UniversalJournalEntry as JournalEntry } from '@/services/journalService.universal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loading, LoadingButton } from '@/components/ui/loading';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 const Journal = () => {
   const [entry, setEntry] = useState('');
@@ -33,12 +31,12 @@ const Journal = () => {
 
   // Fetch journal entries with error handling
   const { data: journalEntries, isLoading, error: journalError, refetch } = useQuery({
-    queryKey: ['journal-entries', currentUser?.uid],
+    queryKey: ['journal-entries', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) throw new Error("Authentication required");
-      console.log("🔄 Fetching journal entries for user:", currentUser.uid);
+      console.log("🔄 Fetching journal entries for user:", currentUser.id);
       try {
-        const entries = await getJournalEntries(currentUser.uid);
+        const entries = await getJournalEntries(currentUser.id);
         console.log("📱 Journal entries fetched successfully:", entries.length, "entries");
         return entries;
       } catch (error) {
@@ -55,7 +53,7 @@ const Journal = () => {
 
   // Basic debug useEffect to track user state
   useEffect(() => {
-    console.log("🔍 Journal State - User:", currentUser?.uid, "Entries:", journalEntries?.length || 0);
+    console.log("🔍 Journal State - User:", currentUser?.id, "Entries:", journalEntries?.length || 0);
   }, [currentUser, journalEntries]);
 
   // Save journal entry mutation with improved error handling
@@ -72,7 +70,7 @@ const Journal = () => {
     },
     onSuccess: () => {
       // Invalidate and refetch the journal entries
-      queryClient.invalidateQueries({ queryKey: ['journal-entries', currentUser?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries', currentUser?.id] });
       refetch(); // Explicit refetch to ensure immediate update
       
       toast.success("Entry saved with love 💕");
@@ -127,8 +125,8 @@ const Journal = () => {
     saveMutation.mutate({
       content: entry,
       mood: mood,
-      authorId: currentUser.uid,
-      authorName: currentUser.displayName || 'Anonymous'
+      authorId: currentUser.id,
+      authorName: currentUser.displayName || currentUser.email || 'Unknown User'
     });
   };
 
@@ -136,10 +134,8 @@ const Journal = () => {
     if (!timestamp) return 'Unknown date';
     
     try {
-      // If it's a Firebase Timestamp, convert to JS Date
-      const date = (timestamp as { toDate?: () => Date }).toDate ? 
-        (timestamp as { toDate: () => Date }).toDate() : 
-        new Date(timestamp as string | number | Date);
+      // Handle MongoDB Date or regular Date/string/number
+      const date = new Date(timestamp as string | number | Date);
       
       return date.toLocaleDateString('en-US', {
         month: 'long',

@@ -28,7 +28,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser } = useAuth();
   
   try {
-    // Check Firebase auth context
+    // Check auth context
     if (currentUser) return <ErrorBoundary>{children}</ErrorBoundary>;
     
     // Fallback to secure session storage if context is unavailable

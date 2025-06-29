@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useAuth } from '@/hooks/use-auth';
 import { addMilestone, getMilestones, generateAutomaticMilestones } from '@/services/milestonesService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { userService } from '@/services/userService.universal';
 import { getTotalDays } from '@/utils/dateUtils';
 
 const Milestones = () => {
@@ -29,13 +28,12 @@ const Milestones = () => {
   // Fetch relationship start date from user settings
   useEffect(() => {
     const fetchRelationshipStartDate = async () => {
-      if (currentUser?.uid) {
+      if (currentUser?.id) {
         try {
-          const userSettingsRef = doc(db, "user_settings", currentUser.uid);
-          const docSnap = await getDoc(userSettingsRef);
+          const userSettings = await userService.getUserSettings(currentUser.id);
           
-          if (docSnap.exists() && docSnap.data().relationshipStartDate) {
-            const startDateStr = docSnap.data().relationshipStartDate;
+          if (userSettings && userSettings.relationshipStartDate) {
+            const startDateStr = userSettings.relationshipStartDate;
             const startDate = new Date(startDateStr);
             
             if (!isNaN(startDate.getTime())) {
@@ -54,8 +52,8 @@ const Milestones = () => {
   
   // Fetch milestones
   const { data: milestones, isLoading } = useQuery({
-    queryKey: ['milestones'],
-    queryFn: getMilestones,
+    queryKey: ['milestones', currentUser?.id],
+    queryFn: () => getMilestones(currentUser?.id || ''),
     enabled: !!currentUser
   });
   
@@ -87,7 +85,7 @@ const Milestones = () => {
   
   // Generate automatic milestones
   const generateMilestonesMutation = useMutation({
-    mutationFn: () => generateAutomaticMilestones(relationshipStartDate, currentUser?.uid || ''),
+    mutationFn: () => generateAutomaticMilestones(relationshipStartDate, currentUser?.id || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['milestones'] });
     }
@@ -112,9 +110,8 @@ const Milestones = () => {
     const newMilestone = {
       title: newMilestoneTitle,
       date: newMilestoneDate,
-      achieved: true,
       description: '',
-      createdBy: currentUser.uid,
+      achieved: false,
       isAutomatic: false
     };
     

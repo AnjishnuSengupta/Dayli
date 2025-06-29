@@ -8,11 +8,10 @@ import MoodPicker from '../components/ui/MoodPicker';
 import FloatingHearts from '../components/ui/FloatingHearts';
 import ZoomStagger from '../components/ui/ZoomStagger';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { motion } from 'framer-motion';
-import { JournalEntry, getJournalEntries } from '@/services/journalService';
-import { Memory, getMemories } from '@/services/memoriesService';
+import { UniversalJournalEntry as JournalEntry, getJournalEntries } from '@/services/journalService.universal';
+import { UniversalMemory as Memory, getMemories } from '@/services/memoriesService.universal';
+import { userService } from '@/services/userService.universal';
 import { useToast } from '@/components/ui/use-toast';
 import { formatRelationshipDuration, getRelationshipDurationText } from '@/utils/dateUtils';
 
@@ -44,13 +43,12 @@ const Dashboard = () => {
   // Fetch relationship start date and calculate days together
   useEffect(() => {
     const fetchRelationshipStartDate = async () => {
-      if (currentUser?.uid) {
+      if (currentUser?.id) {
         try {
-          const userSettingsRef = doc(db, "user_settings", currentUser.uid);
-          const docSnap = await getDoc(userSettingsRef);
+          const userSettings = await userService.getUserSettings(currentUser.id);
           
-          if (docSnap.exists() && docSnap.data().relationshipStartDate) {
-            const startDateStr = docSnap.data().relationshipStartDate;
+          if (userSettings && userSettings.relationshipStartDate) {
+            const startDateStr = userSettings.relationshipStartDate;
             const startDate = new Date(startDateStr);
             
             // Only calculate if we have a valid date
@@ -82,7 +80,7 @@ const Dashboard = () => {
       setIsLoadingEntries(true);
       try {
         // Use the service function to get entries with proper filtering
-        const allEntries = await getJournalEntries(currentUser.uid);
+        const allEntries = await getJournalEntries(currentUser.id);
         
         // Get only the 3 most recent entries
         const recentEntries: EnhancedJournalEntry[] = allEntries.slice(0, 3).map(entry => {
@@ -121,7 +119,7 @@ const Dashboard = () => {
       setIsLoadingMemories(true);
       try {
         // Use the service function to get memories with proper filtering
-        const allMemories = await getMemories(currentUser.uid);
+        const allMemories = await getMemories(currentUser.id);
         
         // Get only the 4 most recent memories
         const recentMemories = allMemories.slice(0, 4);
@@ -222,7 +220,7 @@ const Dashboard = () => {
                     <p className="text-sm text-gray-500 mb-2">
                       {entry.createdAt instanceof Date 
                         ? entry.createdAt.toLocaleDateString() 
-                        : new Date(entry.createdAt.seconds * 1000).toLocaleDateString()}
+                        : new Date(entry.createdAt).toLocaleDateString()}
                     </p>
                     <p className="text-sm">{entry.excerpt || entry.content.substring(0, 80) + '...'}</p>
                   </JournalCard>

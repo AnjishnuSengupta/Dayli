@@ -1,50 +1,45 @@
-
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  User, 
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  updateProfile,
-  updateEmail as firebaseUpdateEmail,
-  UserCredential
-} from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import React, { useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
-import { saveAuthState, saveUserData, clearAuthState, createStorableUser } from '@/utils/authStorage';
-
-interface AuthContextType {
-  currentUser: User | null;
-  loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<UserCredential>;
-  logIn: (email: string, password: string) => Promise<UserCredential>;
-  logOut: () => Promise<void>;
-  updateUserProfile: (displayName: string, photoURL: string | null) => Promise<void>;
-  updateUserEmail: (email: string) => Promise<void>;
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const AuthContext = createContext<AuthContextType | null>(null);
+import { saveAuthState, saveUserData, clearAuthState, createStorableUserFromUniversal } from '@/utils/authStorage';
+import { signUp, logIn, logOut, updateUserProfile, updateUserEmail, UniversalUser } from '@/services/authService.universal';
+import { AuthContext } from './AuthContextDefinition';
 
 export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<UniversalUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const signUp = async (email: string, password: string, displayName: string) => {
-    try {
-      const response = await createUserWithEmailAndPassword(auth, email, password);
+  useEffect(() => {
+    console.log(`🔐 Setting up auth listener for MongoDB backend`);
+    
+    // For MongoDB, check for stored auth token and user data
+    const initMongoDB = () => {
+      const token = localStorage.getItem('auth_token');
+      const userData = localStorage.getItem('user_data');
       
-      // Update the user's profile with their display name
-      if (response.user) {
-        await updateProfile(response.user, {
-          displayName: displayName
-        });
-        
-        // Save auth state and user data
-        saveAuthState(true);
-        saveUserData(createStorableUser(response.user));
+      if (token && userData) {
+        try {
+          const user = JSON.parse(userData);
+          setCurrentUser(user);
+          saveAuthState(true);
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+          clearAuthState();
+        }
       }
+      
+      setLoading(false);
+    };
+    
+    initMongoDB();
+  }, []);
+
+  const handleSignUp = async (email: string, password: string, displayName: string) => {
+    try {
+      const response = await signUp(email, password, displayName);
+      
+      setCurrentUser(response.user);
+      saveAuthState(true);
+      saveUserData(createStorableUserFromUniversal(response.user));
       
       toast.success("Account created successfully!");
       return response;
@@ -61,13 +56,13 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     }
   };
 
-  const logIn = async (email: string, password: string) => {
+  const handleLogIn = async (email: string, password: string) => {
     try {
-      const response = await signInWithEmailAndPassword(auth, email, password);
+      const response = await logIn(email, password);
       
-      // Save auth state and user data
+      setCurrentUser(response.user);
       saveAuthState(true);
-      saveUserData(createStorableUser(response.user));
+      saveUserData(createStorableUserFromUniversal(response.user));
       
       toast.success("Logged in successfully!");
       return response;
@@ -84,11 +79,11 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     }
   };
 
-  const logOut = async () => {
+  const handleLogOut = async () => {
     try {
-      await signOut(auth);
+      await logOut();
       
-      // Clear auth state and user data
+      setCurrentUser(null);
       clearAuthState();
       
       toast.success("Logged out successfully!");
@@ -99,74 +94,57 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     }
   };
 
-  const updateUserProfile = async (displayName: string, photoURL: string | null) => {
-    if (!currentUser) throw new Error("No user is logged in");
-    
+  const handleUpdateUserProfile = async (displayName: string, photoURL: string | null) => {
     try {
-      await updateProfile(currentUser, {
-        displayName,
-        photoURL: photoURL || undefined
-      });
+      const updatedUser = await updateUserProfile(displayName, photoURL || undefined);
       
-      // Update stored user data
-      saveUserData(createStorableUser(currentUser));
+      setCurrentUser(updatedUser);
+      saveUserData(createStorableUserFromUniversal(updatedUser));
       
-      // Force refresh the user object to get updated data
-      setCurrentUser({ ...currentUser });
-      return;
+      toast.success("Profile updated successfully!");
     } catch (error) {
-      console.error("Error updating profile:", error);
-      throw error;
-    }
-  };
-
-  const updateUserEmail = async (email: string) => {
-    if (!currentUser) throw new Error("No user is logged in");
-    
-    try {
-      await firebaseUpdateEmail(currentUser, email);
-      
-      // Update stored user data
-      saveUserData(createStorableUser(currentUser));
-      
-      // Force refresh the user object
-      setCurrentUser({ ...currentUser });
-      return;
-    } catch (error) {
-      console.error("Error updating email:", error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      
-      if (user) {
-        // Update stored user data when auth state changes
-        saveAuthState(true);
-        saveUserData(createStorableUser(user));
+      console.error("Profile update error:", error);
+      if (error instanceof Error) {
+        toast.error(`Profile update failed: ${error.message}`);
+      } else {
+        toast.error("Failed to update profile. Please try again.");
       }
-      
-      setLoading(false);
-    });
+      throw error;
+    }
+  };
 
-    return unsubscribe;
-  }, []);
+  const handleUpdateUserEmail = async (email: string) => {
+    try {
+      const updatedUser = await updateUserEmail(email);
+      
+      setCurrentUser(updatedUser);
+      saveUserData(createStorableUserFromUniversal(updatedUser));
+      
+      toast.success("Email updated successfully!");
+    } catch (error) {
+      console.error("Email update error:", error);
+      if (error instanceof Error) {
+        toast.error(`Email update failed: ${error.message}`);
+      } else {
+        toast.error("Failed to update email. Please try again.");
+      }
+      throw error;
+    }
+  };
 
   const value = {
     currentUser,
     loading,
-    signUp,
-    logIn,
-    logOut,
-    updateUserProfile,
-    updateUserEmail
+    signUp: handleSignUp,
+    logIn: handleLogIn,
+    logOut: handleLogOut,
+    updateUserProfile: handleUpdateUserProfile,
+    updateUserEmail: handleUpdateUserEmail
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

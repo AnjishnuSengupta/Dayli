@@ -3,9 +3,8 @@ import React, { ReactNode, useEffect, useState } from 'react';
 import Navigation from './Navigation';
 import { Heart } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
+import { userService } from '@/services/userService.universal';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -20,12 +19,11 @@ const MainLayout = ({ children, showNav = true }: MainLayoutProps) => {
   // Load user's dark mode preference
   useEffect(() => {
     const fetchDarkModePreference = async () => {
-      if (currentUser?.uid) {
+      if (currentUser?.id) {
         try {
-          const userSettingsRef = doc(db, "user_settings", currentUser.uid);
-          const docSnap = await getDoc(userSettingsRef);
+          const userSettings = await userService.getUserSettings(currentUser.id);
           
-          if (docSnap.exists() && docSnap.data().darkMode) {
+          if (userSettings && userSettings.darkMode) {
             setDarkMode(true);
             document.documentElement.classList.add('dark');
           } else {

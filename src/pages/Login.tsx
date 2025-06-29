@@ -61,7 +61,7 @@ const Login = () => {
       console.error("Authentication error:", err);
       
       if (err instanceof Error) {
-        // Extract Firebase error message
+        // Extract error message
         const errorMessage = err.message;
         if (errorMessage.includes('auth/user-not-found') || errorMessage.includes('auth/wrong-password')) {
           setError("Invalid email or password");

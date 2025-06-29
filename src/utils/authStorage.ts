@@ -15,10 +15,12 @@ interface AuthSession {
 }
 
 // User data interface for storage
-interface StoredUserData {
-  uid: string;
+export interface StoredUserData {
+  id: string; // Universal ID (matches UniversalUser)
   email: string | null;
   displayName: string | null;
+  photoURL?: string;
+  emailVerified?: boolean;
   // Don't store sensitive data
 }
 
@@ -95,13 +97,28 @@ export const clearAuthState = (): void => {
   }
 };
 
-// Convert Firebase user to storable user data
-export const createStorableUser = (user: { uid: string; email: string | null; displayName: string | null } | null): StoredUserData | null => {
+// Convert user to storable user data
+export const createStorableUser = (user: { id: string; email: string | null; displayName: string | null; photoURL?: string | null; emailVerified?: boolean } | null): StoredUserData | null => {
   if (!user) return null;
   
   return {
-    uid: user.uid,
+    id: user.id, // Universal ID
     email: user.email,
     displayName: user.displayName,
+    photoURL: user.photoURL || undefined,
+    emailVerified: user.emailVerified,
+  };
+};
+
+// Convert UniversalUser to storable user data
+export const createStorableUserFromUniversal = (user: { id: string; email: string; displayName: string; photoURL?: string; emailVerified: boolean } | null): StoredUserData | null => {
+  if (!user) return null;
+  
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    photoURL: user.photoURL,
+    emailVerified: user.emailVerified,
   };
 };

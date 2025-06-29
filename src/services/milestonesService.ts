@@ -1,115 +1,84 @@
-
-import { db } from "../lib/firebase";
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  query, 
-  orderBy, 
-  serverTimestamp, 
-  Timestamp 
-} from "firebase/firestore";
+// MongoDB-only Milestones Service
+import { apiClient } from './apiClient';
 
 export interface Milestone {
+  _id?: string;
   id?: string;
   title: string;
   date: string;
+  description: string;
   achieved: boolean;
-  description?: string;
-  createdAt: Timestamp;
   createdBy: string;
-  isAutomatic?: boolean;
+  isAutomatic: boolean;
+  category?: string;
+  priority?: string;
+  createdAt: Date;
 }
 
-export const addMilestone = async (milestone: Omit<Milestone, 'id' | 'createdAt'>) => {
-  const milestoneData = {
+export const addMilestone = async (milestone: Omit<Milestone, '_id' | 'id' | 'createdAt' | 'createdBy'>): Promise<Milestone> => {
+  console.log('🎯 Adding milestone via MongoDB');
+  const response = await apiClient.post('/milestones', milestone);
+  return response.data as Milestone;
+};
+
+export const getMilestones = async (userId: string): Promise<Milestone[]> => {
+  console.log('📋 Fetching milestones via MongoDB');
+  const response = await apiClient.get('/milestones');
+  const data = response.data as Milestone[];
+  return data.map((milestone: Milestone) => ({
     ...milestone,
-    createdAt: serverTimestamp()
-  };
-  
-  const docRef = await addDoc(collection(db, "milestones"), milestoneData);
-  return docRef.id;
+    id: milestone._id,
+    createdAt: new Date(milestone.createdAt)
+  }));
 };
 
-export const getMilestones = async () => {
-  const q = query(
-    collection(db, "milestones"),
-    orderBy("createdAt")
-  );
+export const generateAutomaticMilestones = async (relationshipStartDate: Date, userId: string): Promise<Milestone[]> => {
+  console.log('🤖 Generating automatic milestones');
   
-  const querySnapshot = await getDocs(q);
-  
-  const milestones: Milestone[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data() as Omit<Milestone, 'id'>;
-    milestones.push({
-      id: doc.id,
-      ...data
-    });
-  });
-  
-  return milestones;
-};
-
-export const generateAutomaticMilestones = async (startDate: Date, userId: string) => {
-  // Get existing automatic milestones
-  const q = query(
-    collection(db, "milestones"),
-    orderBy("createdAt")
-  );
-  
-  const querySnapshot = await getDocs(q);
-  const existingMilestones = new Set();
-  
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    if (data.isAutomatic) {
-      existingMilestones.add(data.title);
-    }
-  });
-  
+  const milestones: Omit<Milestone, '_id' | 'id' | 'createdAt' | 'createdBy'>[] = [];
+  const startDate = new Date(relationshipStartDate);
   const today = new Date();
-  const daysSince = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   
-  const automaticMilestones = [
-    {
-      title: 'Day 1',
-      date: startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      achieved: true,
-      description: 'The day it all began',
-      createdBy: userId,
-      isAutomatic: true
-    },
-    {
-      title: 'Week 1',
-      date: new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      achieved: daysSince >= 7,
-      description: 'One week together',
-      createdBy: userId,
-      isAutomatic: true
-    },
-    {
-      title: 'Month 1',
-      date: new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      achieved: daysSince >= 30,
-      description: 'One month of happiness',
-      createdBy: userId,
-      isAutomatic: true
-    },
-    {
-      title: '100 Days',
-      date: new Date(startDate.getTime() + 100 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      achieved: daysSince >= 100,
-      description: '100 days of beautiful memories',
-      createdBy: userId,
-      isAutomatic: true
-    }
+  // Calculate days together
+  const timeDiff = today.getTime() - startDate.getTime();
+  const daysTogether = Math.floor(timeDiff / (1000 * 3600 * 24));
+  
+  // Generate milestones for completed intervals
+  const intervals = [
+    { days: 30, title: "First Month Together", description: "Celebrating our first month as a couple! 💕" },
+    { days: 100, title: "100 Days Together", description: "100 days of love and laughter! 🎉" },
+    { days: 365, title: "One Year Anniversary", description: "Our first year together - what an amazing journey! 🎂" },
+    { days: 500, title: "500 Days Together", description: "500 days of growing closer and creating memories! ✨" },
+    { days: 730, title: "Two Years Anniversary", description: "Two wonderful years of love and partnership! 💝" },
+    { days: 1000, title: "1000 Days Together", description: "1000 days of love - and counting! 🌟" },
+    { days: 1095, title: "Three Years Anniversary", description: "Three years of building our life together! 🏠" },
   ];
   
-  // Only add milestones that don't exist yet
-  for (const milestone of automaticMilestones) {
-    if (!existingMilestones.has(milestone.title)) {
-      await addMilestone(milestone);
+  for (const interval of intervals) {
+    if (daysTogether >= interval.days) {
+      const milestoneDate = new Date(startDate);
+      milestoneDate.setDate(milestoneDate.getDate() + interval.days);
+      
+      milestones.push({
+        title: interval.title,
+        date: milestoneDate.toISOString().split('T')[0],
+        description: interval.description,
+        achieved: false,
+        isAutomatic: true
+      });
     }
   }
+  
+  return milestones as Milestone[];
+};
+
+export const deleteMilestone = async (milestoneId: string): Promise<void> => {
+  console.log('🗑️ Deleting milestone via MongoDB');
+  await apiClient.delete(`/milestones/${milestoneId}`);
+};
+
+export const updateMilestone = async (milestoneId: string, updates: Partial<Milestone>): Promise<Milestone> => {
+  console.log('🔄 Updating milestone via MongoDB');
+  const response = await apiClient.put(`/milestones/${milestoneId}`, updates);
+  return response.data as Milestone;
 };

@@ -7,13 +7,12 @@ import MemoryGallery from '../components/ui/MemoryGallery';
 import { Camera, Plus, Bookmark, Heart, Loader2, Trash2, Grid, List, Filter, Search, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { Memory } from '@/services/memoriesService';
-// Import secure memory services
-import { saveMemory, getMemories, toggleFavorite, deleteMemory } from '@/services/memoriesService';
+import { Memory } from '@/services/memoriesService.universal';
+// Use universal image service for MongoDB
+import { uploadImage } from '@/services/imageService.universal';
+import { saveMemory, getMemories, toggleFavorite, deleteMemory } from '@/services/memoriesService.universal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useMinioStorage } from '@/hooks/use-minio-storage';
-import { Timestamp } from 'firebase/firestore';
 
 const Memories = () => {
   const [showHearts, setShowHearts] = useState(false);
@@ -30,13 +29,12 @@ const Memories = () => {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
-  const { upload } = useMinioStorage(); // Use the direct MinIO storage hook
   
   // Fetch memories
   const { data: memories, isLoading } = useQuery({
-    queryKey: ['memories', currentUser?.uid],
-    queryFn: () => currentUser ? getMemories(currentUser.uid) : Promise.resolve([]),
-    enabled: !!currentUser?.uid
+    queryKey: ['memories', currentUser?.id],
+    queryFn: () => currentUser ? getMemories(currentUser.id) : Promise.resolve([]),
+    enabled: !!currentUser?.id
   });
 
   // Filter memories based on search term and favorites filter
@@ -68,7 +66,7 @@ const Memories = () => {
     mutationFn: ({ memory, file }: { memory: Memory, file: File }) => {
       if (!currentUser) throw new Error("Authentication required");
       // Pass the userId to the secure saveMemory function
-      return saveMemory(memory, file, currentUser.uid);
+      return saveMemory(memory, file, currentUser.id);
     },
     onSuccess: () => {
       // Invalidate and refetch
@@ -96,7 +94,7 @@ const Memories = () => {
   const favoriteMutation = useMutation({
     mutationFn: ({ id, isFavorite }: { id: string, isFavorite: boolean }) => {
       if (!currentUser) throw new Error("Authentication required");
-      return toggleFavorite(id, isFavorite, currentUser.uid);
+      return toggleFavorite(id, isFavorite);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memories'] });
@@ -115,7 +113,7 @@ const Memories = () => {
   const deleteMutation = useMutation({
     mutationFn: ({ id, imageUrl }: { id: string, imageUrl: string }) => {
       if (!currentUser) throw new Error("Authentication required");
-      return deleteMemory(id, imageUrl, currentUser.uid);
+      return deleteMemory(id, imageUrl, currentUser.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memories'] });
@@ -189,9 +187,10 @@ const Memories = () => {
       title,
       date,
       caption,
-      createdBy: currentUser.uid,
+      createdBy: currentUser.id,
       imageUrl: '', // Will be set by the saveMemory function
-      createdAt: Timestamp.now(),
+      createdAt: new Date(), // Use regular Date object
+      isFavorite: false, // Default to false for new memories
       // Additional security metadata
       timestamp: Date.now(),
     };
